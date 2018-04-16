@@ -196,7 +196,7 @@ def bottleneck(input_layer,
 
 
 def init_block(input_layer,
-               train
+               train,
                conv_filters=13,
                kernel_size=[3,3], kernel_strides=[2,2],
                pool_size=[2,2], pool_strides=[2,2],
@@ -321,53 +321,6 @@ def enet_encoder(input_layer,train,n_classes=10):
     return output_layer
 
 
-def enet_encoder_mnist(input_layer,train,n_classes=10):
-
-    '''
-    Slimmed down Enet encoder for mnist. Actually, does not look like enet at all.
-    (1) Paszke, A.; Chaurasia, A.; Kim, S.; Culurciello, E. ENet: A Deep Neural Network
-        Architecture for Real-Time Semantic Segmentation. arXiv:1606.02147 [cs] 2016.
-    (2) https://github.com/e-lab/ENet-training/blob/master/train/models/encoder.lua
-    (3) https://culurciello.github.io/tech/2016/06/20/training-enet.html
-
-
-    Arguments
-    ----------
-    'input_layer' = input `Tensor` with type `float32` and
-                    shape [batch_size,28,28,1]
-    'train' = a `boolean`: training or evaluation mode for dropout
-    'n_classes' = an `Integer`: number of classes
-
-    Returns
-    -------
-    'logits' = A `Tensor` with the same type as `input_layer` and shape [batch_size,n_classes]
-    '''
-
-    # ---------Initial block---------
-    out_init =  init_block(input_layer) # 14x14
-
-    # --------first block---------
-    # first bottleneck with downsampling
-    bt1_0  = bottleneck(out_init,train,output_filters=64,dropout_prob=0.5,
-                          downsample=True,name='bt1_0_ds')  # 7x7
-
-    # four bottlenecks without downsampling
-    bt1_1  = bottleneck(bt1_0,train,output_filters=64,dropout_prob=0.5,name='bt1_1')
-    bt1_2  = bottleneck(bt1_1,train,output_filters=64,dropout_prob=0.5,name='bt1_2')
-    bt1_3  = bottleneck(bt1_2,train,output_filters=64,dropout_prob=0.5,name='bt1_3')
-    bt1_4  = bottleneck(bt1_3,train,output_filters=64,dropout_prob=0.5,name='bt1_4')
-
-    # --------logits---------
-    r_mean= tf.reduce_mean(bt1_4,axis=[1,2],keepdims=True,name='r_mean')
-    r_mean_reshape = tf.reshape(r_mean, [-1, r_mean.get_shape().as_list()[-1]],
-                                name='r_mean_reshape')
-    r_mean = tf.identity(r_mean,name='final_reduce_mean')
-    logits = tf.layers.dense(inputs=r_mean_reshape, units=n_classes,name='dense_logits')
-    logits = tf.identity(logits,name='logits')
-
-    return logits
-
-
 def enet_encoder_v3(input_layer,train,n_classes=10):
 
     '''
@@ -433,3 +386,116 @@ def enet_encoder_v3(input_layer,train,n_classes=10):
     logits = tf.identity(logits, 'logits')
 
     return logits
+
+
+def enet_encoder_mnist(input_layer,train,n_classes=10):
+
+    '''
+    Slimmed down Enet encoder for mnist. Actually, does not look like enet at all.
+    (1) Paszke, A.; Chaurasia, A.; Kim, S.; Culurciello, E. ENet: A Deep Neural Network
+        Architecture for Real-Time Semantic Segmentation. arXiv:1606.02147 [cs] 2016.
+    (2) https://github.com/e-lab/ENet-training/blob/master/train/models/encoder.lua
+    (3) https://culurciello.github.io/tech/2016/06/20/training-enet.html
+
+
+    Arguments
+    ----------
+    'input_layer' = input `Tensor` with type `float32` and
+                    shape [batch_size,28,28,1]
+    'train' = a `boolean`: training or evaluation mode for dropout
+    'n_classes' = an `Integer`: number of classes
+
+    Returns
+    -------
+    'logits' = A `Tensor` with the same type as `input_layer` and shape [batch_size,n_classes]
+    '''
+
+    # ---------Initial block---------
+    out_init =  init_block(input_layer) # 14x14
+
+    # --------first block---------
+    # first bottleneck with downsampling
+    bt1_0  = bottleneck(out_init,train,output_filters=64,dropout_prob=0.5,
+                          downsample=True,name='bt1_0_ds')  # 7x7
+
+    # four bottlenecks without downsampling
+    bt1_1  = bottleneck(bt1_0,train,output_filters=64,dropout_prob=0.5,name='bt1_1')
+    bt1_2  = bottleneck(bt1_1,train,output_filters=64,dropout_prob=0.5,name='bt1_2')
+    bt1_3  = bottleneck(bt1_2,train,output_filters=64,dropout_prob=0.5,name='bt1_3')
+    bt1_4  = bottleneck(bt1_3,train,output_filters=64,dropout_prob=0.5,name='bt1_4')
+
+    # --------logits---------
+    r_mean= tf.reduce_mean(bt1_4,axis=[1,2],keepdims=True,name='r_mean')
+    r_mean_reshape = tf.reshape(r_mean, [-1, r_mean.get_shape().as_list()[-1]],
+                                name='r_mean_reshape')
+    r_mean = tf.identity(r_mean,name='final_reduce_mean')
+    logits = tf.layers.dense(inputs=r_mean_reshape, units=n_classes,
+                             activation=tf.nn.relu,name='dense_logits')
+    logits = tf.identity(logits,name='logits')
+
+    return logits
+
+
+def mnist_test(input_layer,mode):
+  """Model function for CNN."""
+  # Input Layer
+  # Reshape X to 4-D tensor: [batch_size, width, height, channels]
+  # MNIST images are 28x28 pixels, and have one color channel
+  input_layer = tf.reshape(features["x"], [-1, 28, 28, 1])
+
+  # Convolutional Layer #1
+  # Computes 32 features using a 5x5 filter with ReLU activation.
+  # Padding is added to preserve width and height.
+  # Input Tensor Shape: [batch_size, 28, 28, 1]
+  # Output Tensor Shape: [batch_size, 28, 28, 32]
+  conv1 = tf.layers.conv2d(
+      inputs=input_layer,
+      filters=32,
+      kernel_size=[5, 5],
+      padding="same",
+      activation=tf.nn.relu)
+
+  # Pooling Layer #1
+  # First max pooling layer with a 2x2 filter and stride of 2
+  # Input Tensor Shape: [batch_size, 28, 28, 32]
+  # Output Tensor Shape: [batch_size, 14, 14, 32]
+  pool1 = tf.layers.max_pooling2d(inputs=conv1, pool_size=[2, 2], strides=2)
+
+  # Convolutional Layer #2
+  # Computes 64 features using a 5x5 filter.
+  # Padding is added to preserve width and height.
+  # Input Tensor Shape: [batch_size, 14, 14, 32]
+  # Output Tensor Shape: [batch_size, 14, 14, 64]
+  conv2 = tf.layers.conv2d(
+      inputs=pool1,
+      filters=64,
+      kernel_size=[5, 5],
+      padding="same",
+      activation=tf.nn.relu)
+
+  # Pooling Layer #2
+  # Second max pooling layer with a 2x2 filter and stride of 2
+  # Input Tensor Shape: [batch_size, 14, 14, 64]
+  # Output Tensor Shape: [batch_size, 7, 7, 64]
+  pool2 = tf.layers.max_pooling2d(inputs=conv2, pool_size=[2, 2], strides=2)
+
+  # Flatten tensor into a batch of vectors
+  # Input Tensor Shape: [batch_size, 7, 7, 64]
+  # Output Tensor Shape: [batch_size, 7 * 7 * 64]
+  pool2_flat = tf.reshape(pool2, [-1, 7 * 7 * 64])
+
+  # Dense Layer
+  # Densely connected layer with 1024 neurons
+  # Input Tensor Shape: [batch_size, 7 * 7 * 64]
+  # Output Tensor Shape: [batch_size, 1024]
+  dense = tf.layers.dense(inputs=pool2_flat, units=1024, activation=tf.nn.relu)
+
+  # Add dropout operation; 0.6 probability that element will be kept
+  dropout = tf.layers.dropout(
+      inputs=dense, rate=0.4, training=mode == tf.estimator.ModeKeys.TRAIN)
+
+  # Logits layer
+  # Input Tensor Shape: [batch_size, 1024]
+  # Output Tensor Shape: [batch_size, 10]
+  logits = tf.layers.dense(inputs=dropout, units=10)
+  return logits
