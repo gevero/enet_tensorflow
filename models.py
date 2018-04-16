@@ -1,5 +1,5 @@
 import tensorflow as tf
-from encoders import enet_encoder_mnist
+from encoders import enet_encoder_mnist mnist_test
 import numpy as np
 
 # Define the
