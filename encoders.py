@@ -429,8 +429,7 @@ def enet_encoder_mnist(input_layer,train,n_classes=10):
     r_mean_reshape = tf.reshape(r_mean, [-1, r_mean.get_shape().as_list()[-1]],
                                 name='r_mean_reshape')
     r_mean = tf.identity(r_mean,name='final_reduce_mean')
-    logits = tf.layers.dense(inputs=r_mean_reshape, units=n_classes,
-                             activation=tf.nn.relu,name='dense_logits')
+    logits = tf.layers.dense(inputs=r_mean_reshape, units=n_classes,name='dense_logits')
     logits = tf.identity(logits,name='logits')
 
     return logits
@@ -455,11 +454,15 @@ def mnist_test(features,mode):
       padding="same",
       activation=tf.nn.relu)
 
+  # additional bottlenecks
+  train  = (mode == tf.estimator.ModeKeys.TRAIN)
+  bt1_1  = bottleneck(conv1,train,output_filters=32,dropout_prob=0.5,name='bt1_1')
+
   # Pooling Layer #1
   # First max pooling layer with a 2x2 filter and stride of 2
   # Input Tensor Shape: [batch_size, 28, 28, 32]
   # Output Tensor Shape: [batch_size, 14, 14, 32]
-  pool1 = tf.layers.max_pooling2d(inputs=conv1, pool_size=[2, 2], strides=2)
+  pool1 = tf.layers.max_pooling2d(inputs=bt1_1, pool_size=[2, 2], strides=2)
 
   # Convolutional Layer #2
   # Computes 64 features using a 5x5 filter.
