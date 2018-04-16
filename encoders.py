@@ -427,7 +427,7 @@ def enet_encoder_mnist(input_layer,train,n_classes=10):
     # --------logits---------
     bt_shape = bt1_0.get_shape().as_list()
     bt1_0_flat = tf.reshape(bt1_0, [-1, bt_shape[1] * bt_shape[2] * bt_shape[3]])
-    dense = tf.layers.dense(inputs=bt1_4_flat, units=1024, activation=tf.nn.relu)
+    dense = tf.layers.dense(inputs=bt1_0_flat, units=1024, activation=tf.nn.relu)
     # r_mean= tf.reduce_mean(bt1_4,axis=[1,2],keepdims=True,name='r_mean')
     # r_mean_reshape = tf.reshape(r_mean, [-1, r_mean.get_shape().as_list()[-1]],
     #                             name='r_mean_reshape')
