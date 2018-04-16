@@ -134,7 +134,8 @@ def bottleneck(input_layer,
                                         strides=down_strides,
                                         use_bias=False,
                                         name='main1_1')
-            main1_2 = tf.layers.batch_normalization(main1_1,name='main1_2')  # batch norm
+            main1_2 = tf.layers.batch_normalization(main1_1,
+                                                    training=train,name='main1_2')  # batch norm
             main1_3 = prelu(main1_2,name='main1_3')     # PReLU activation
 
 
@@ -156,7 +157,8 @@ def bottleneck(input_layer,
                                     padding=padding,
                                     dilation_rate=dilation_rate,
                                     name='main1_4b')
-            main1_5 = tf.layers.batch_normalization(main1_4,name='main1_5')    # batchnorm
+            main1_5 = tf.layers.batch_normalization(main1_4,
+                                                    training=train,name='main1_5')    # batchnorm
             main1_6 = prelu(main1_5,name='main1_6')  # PReLU
 
 
@@ -167,7 +169,8 @@ def bottleneck(input_layer,
                                         strides=[1,1],
                                         use_bias=False,
                                         name='main1_7')
-            main1_8 = tf.layers.batch_normalization(main1_7,name='main1_8')  # batchnorm
+            main1_8 = tf.layers.batch_normalization(main1_7,
+                                                    training=train,name='main1_8')  # batchnorm
             main1_9 = spatial_dropout(main1_8,rate=dropout_prob,
                                        train=train,name='main1_9')  # dropout
 
@@ -193,6 +196,7 @@ def bottleneck(input_layer,
 
 
 def init_block(input_layer,
+               train
                conv_filters=13,
                kernel_size=[3,3], kernel_strides=[2,2],
                pool_size=[2,2], pool_strides=[2,2],
@@ -210,6 +214,7 @@ def init_block(input_layer,
     Arguments
     ----------
     'input_layer' = input `Tensor` with type `float32`
+    'train' = a `boolean`: training or evaluation mode for dropout
     'conv_filters' = an `Integer`: number filters for the convolution (or channels, if you like it)
     'kernel_size' = a `List`: size of the kernel for the convolution
     'kernel_strides' = a `List`: length of the strides for the convolution
@@ -243,7 +248,7 @@ def init_block(input_layer,
 
             # concatenating the two connections
             out_init = tf.concat([conv_init,pool_init],-1)
-            out_init = tf.layers.batch_normalization(out_init)
+            out_init = tf.layers.batch_normalization(out_init,training=train)
             out_init = prelu(out_init,name='out_init')
 
             return out_init
