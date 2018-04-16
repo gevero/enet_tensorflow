@@ -16,7 +16,7 @@ def main(unused_argv):
     # Create the Estimator
     mnist_classifier = tf.estimator.Estimator(
     model_fn=enet_mnist_fn,
-    model_dir="~/data/work/machine_learning/projects/enet_tensorflow/enet_mnist_model")
+    model_dir="./enet_mnist_model")
 
     # Set up logging for predictions
     tensors_to_log = {"probabilities": "softmax_tensor"}
