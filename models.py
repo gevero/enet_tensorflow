@@ -11,8 +11,8 @@ def enet_mnist_fn(features, labels, mode):
 
     # enet mnist encoder
     train = (mode == tf.estimator.ModeKeys.TRAIN)
-    # logits = enet_encoder_mnist(input_layer,train,n_classes=10)
-    logits = mnist_test(features,mode)
+    logits = enet_encoder_mnist(input_layer,train,n_classes=10)
+    # logits = mnist_test(features,mode)
 
     predictions = {
       # Generate predictions (for PREDICT and EVAL mode)

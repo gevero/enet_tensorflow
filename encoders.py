@@ -425,11 +425,14 @@ def enet_encoder_mnist(input_layer,train,n_classes=10):
     bt1_4  = bottleneck(bt1_3,train,output_filters=64,dropout_prob=0.5,name='bt1_4')
 
     # --------logits---------
-    r_mean= tf.reduce_mean(bt1_4,axis=[1,2],keepdims=True,name='r_mean')
-    r_mean_reshape = tf.reshape(r_mean, [-1, r_mean.get_shape().as_list()[-1]],
-                                name='r_mean_reshape')
-    r_mean = tf.identity(r_mean,name='final_reduce_mean')
-    logits = tf.layers.dense(inputs=r_mean_reshape, units=n_classes,name='dense_logits')
+    bt_shape = bt1_4.get_shape().as_list()
+    bt1_4_flat = tf.reshape(bt1_4, [-1, bt_shape[1] * bt_shape[2] * bt_shape[3]])
+    dense = tf.layers.dense(inputs=bt1_4_flat, units=1024, activation=tf.nn.relu)
+    # r_mean= tf.reduce_mean(bt1_4,axis=[1,2],keepdims=True,name='r_mean')
+    # r_mean_reshape = tf.reshape(r_mean, [-1, r_mean.get_shape().as_list()[-1]],
+    #                             name='r_mean_reshape')
+    # r_mean = tf.identity(r_mean,name='final_reduce_mean')
+    logits = tf.layers.dense(inputs=dense, units=n_classes,name='dense_logits')
     logits = tf.identity(logits,name='logits')
 
     return logits
