@@ -436,7 +436,7 @@ def enet_encoder_mnist(input_layer,train,n_classes=10):
     return logits
 
 
-def mnist_test(input_layer,mode):
+def mnist_test(features,mode):
   """Model function for CNN."""
   # Input Layer
   # Reshape X to 4-D tensor: [batch_size, width, height, channels]
