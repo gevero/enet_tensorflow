@@ -10,6 +10,7 @@ def enet_mnist_fn(features, labels, mode):
     input_layer = tf.reshape(features["x"], [-1, 28, 28, 1])
 
     # enet mnist encoder
+    train = (mode == tf.estimator.ModeKeys.TRAIN)
     logits = enet_encoder_mnist(input_layer,n_classes=10)
 
     predictions = {

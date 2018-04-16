@@ -1,7 +1,7 @@
 import tensorflow as tf
 import numpy as np
 
-def spatial_dropout(input_layer,rate=0.5,name=None):
+def spatial_dropout(input_layer,rate=0.5,train=False,name=None):
     '''
     Simple dropout wrapper to perform spatial dropout. This is based on
     the implementation found in https://github.com/fregu856/segmentation
@@ -12,6 +12,7 @@ def spatial_dropout(input_layer,rate=0.5,name=None):
                     [batch_size, im_height, im_width, filters]
     'rate' = a `float`: The dropout rate, between 0 and 1. E.g. "rate=0.1" would drop
                         out 10% of input units
+    'training' = a `booleand`: training or evaluation mode for dropout
     'name' = a `String`: gives the name_scope and variable_scope
 
     Returns
@@ -33,6 +34,7 @@ def spatial_dropout(input_layer,rate=0.5,name=None):
             # spatial dropout
             drop_layer = tf.layers.dropout(input_layer,rate,
                                            noise_shape=noise_shape,
+                                           training=train,
                                            name='dropout')
 
             return drop_layer
@@ -68,6 +70,7 @@ def prelu(x, name='prelu'):
 
 
 def bottleneck(input_layer,
+               train,
                output_filters=128,
                kernel_size=[3,3], kernel_strides=[1,1],
                padding='same',dilation_rate=[1,1],
@@ -86,6 +89,7 @@ def bottleneck(input_layer,
     Arguments
     ----------
     'input_layer' = input `Tensor` with type `float32`
+    'train' = a `boolean`: training or evaluation mode for dropout
     'output_filters' = an `Integer`: number of output filters (or channels, as you like it)
     'kernel_size' = a `List`: size of the kernel for the central convolution
     'kernel_strides' = a `List`: length of the strides for the central convolution
@@ -157,7 +161,8 @@ def bottleneck(input_layer,
                                         strides=[1,1],
                                         use_bias=False)
             main_1_8 = tf.layers.batch_normalization(main_1_7)  # batchnorm
-            main_1_9 = spatial_dropout(main_1_8,rate=dropout_prob,name='dropout')  # dropout
+            main_1_9 = spatial_dropout(main_1_8,rate=dropout_prob,
+                                       train=train,name='dropout')  # dropout
 
             # -------skip connection-------
             skip_1_1 = input_layer
@@ -234,7 +239,7 @@ def init_block(input_layer,
             return out_init
 
 
-def enet_encoder(input_layer,n_classes=10):
+def enet_encoder(input_layer,train,n_classes=10):
 
     '''
     Enet encoder as in:
@@ -248,6 +253,7 @@ def enet_encoder(input_layer,n_classes=10):
     ----------
     'input_layer' = input `Tensor` with type `float32` and shape
                     [batch_size,x_pixels,y_pixels,n_channels]
+    'train' = a `boolean`: training or evaluation mode for dropout
     'n_classes' = an `Integer`: number of classes
 
     Returns
@@ -261,37 +267,37 @@ def enet_encoder(input_layer,n_classes=10):
 
     # --------first block---------
     # first bottleneck with downsampling
-    conv1_0  = bottleneck(out_init,output_filters=64,dropout_prob=0.01,downsample=True,name='conv1_0_ds')
+    bt1_0  = bottleneck(out_init,train, output_filters=64,dropout_prob=0.01,downsample=True,name='bt1_0_ds')
 
     # four bottlenecks without downsampling
-    conv1_1  = bottleneck(conv1_0,output_filters=64,dropout_prob=0.01,name='conv1_1')
-    conv1_2  = bottleneck(conv1_1,output_filters=64,dropout_prob=0.01,name='conv1_2')
-    conv1_3  = bottleneck(conv1_2,output_filters=64,dropout_prob=0.01,name='conv1_3')
-    conv1_4  = bottleneck(conv1_3,output_filters=64,dropout_prob=0.01,name='conv1_4')
+    bt1_1  = bottleneck(bt1_0,train,output_filters=64,dropout_prob=0.01,name='bt1_1')
+    bt1_2  = bottleneck(bt1_1,train,output_filters=64,dropout_prob=0.01,name='bt1_2')
+    bt1_3  = bottleneck(bt1_2,train,output_filters=64,dropout_prob=0.01,name='bt1_3')
+    bt1_4  = bottleneck(bt1_3,train,output_filters=64,dropout_prob=0.01,name='bt1_4')
 
     # --------second block---------
-    conv2_0  = bottleneck(conv1_4,output_filters=128,downsample=True,name='conv2_0_ds')
-    conv2_1  = bottleneck(conv2_0,output_filters=128,name='conv2_1')
-    conv2_2  = bottleneck(conv2_1,output_filters=128,dilation_rate=[2,2],name='conv2_2_dl')
-    conv2_3  = bottleneck(conv2_2,output_filters=128,kernel_size=[7,1],name='conv2_3_as')
-    conv2_4  = bottleneck(conv2_3,output_filters=128,dilation_rate=[4,4],name='conv2_4_dl')
-    conv2_5  = bottleneck(conv2_4,output_filters=128,name='conv2_5')
-    conv2_6  = bottleneck(conv2_5,output_filters=128,dilation_rate=[8,8],name='conv2_6_d')
-    conv2_7  = bottleneck(conv2_6,output_filters=128,kernel_size=[5,1],name='conv2_7_as')
-    conv2_8  = bottleneck(conv2_7,output_filters=128,dilation_rate=[16,16],name='conv2_8_dl')
+    bt2_0  = bottleneck(bt1_4,train,output_filters=128,downsample=True,name='bt2_0_ds')
+    bt2_1  = bottleneck(bt2_0,train,output_filters=128,name='bt2_1')
+    bt2_2  = bottleneck(bt2_1,train,output_filters=128,dilation_rate=[2,2],name='bt2_2_dl')
+    bt2_3  = bottleneck(bt2_2,train,output_filters=128,kernel_size=[7,1],name='bt2_3_as')
+    bt2_4  = bottleneck(bt2_3,train,output_filters=128,dilation_rate=[4,4],name='bt2_4_dl')
+    bt2_5  = bottleneck(bt2_4,train,output_filters=128,name='bt2_5')
+    bt2_6  = bottleneck(bt2_5,train,output_filters=128,dilation_rate=[8,8],name='bt2_6_d')
+    bt2_7  = bottleneck(bt2_6,train,output_filters=128,kernel_size=[5,1],name='bt2_7_as')
+    bt2_8  = bottleneck(bt2_7,train,output_filters=128,dilation_rate=[16,16],name='bt2_8_dl')
 
     # --------third block---------
-    conv3_0  = bottleneck(conv2_8,output_filters=128,name='conv3_0')
-    conv3_1  = bottleneck(conv3_0,output_filters=128,dilation_rate=[2,2],name='conv3_1_dl')
-    conv3_2  = bottleneck(conv3_1,output_filters=128,kernel_size=[7,1],name='conv3_2_as')
-    conv3_3  = bottleneck(conv3_2,output_filters=128,dilation_rate=[4,4],name='conv3_3_dl')
-    conv3_4  = bottleneck(conv3_3,output_filters=128,name='conv3_4')
-    conv3_5  = bottleneck(conv3_4,output_filters=128,dilation_rate=[8,8],name='conv3_5_d')
-    conv3_6  = bottleneck(conv3_5,output_filters=128,kernel_size=[5,1],name='conv3_6_as')
-    conv3_7  = bottleneck(conv3_6,output_filters=128,dilation_rate=[16,16],name='conv3_7_dl')
+    bt3_0  = bottleneck(bt2_8,train,output_filters=128,name='bt3_0')
+    bt3_1  = bottleneck(bt3_0,train,output_filters=128,dilation_rate=[2,2],name='bt3_1_dl')
+    bt3_2  = bottleneck(bt3_1,train,output_filters=128,kernel_size=[7,1],name='bt3_2_as')
+    bt3_3  = bottleneck(bt3_2,train,output_filters=128,dilation_rate=[4,4],name='bt3_3_dl')
+    bt3_4  = bottleneck(bt3_3,train,output_filters=128,name='bt3_4')
+    bt3_5  = bottleneck(bt3_4,train,output_filters=128,dilation_rate=[8,8],name='bt3_5_d')
+    bt3_6  = bottleneck(bt3_5,train,output_filters=128,kernel_size=[5,1],name='bt3_6_as')
+    bt3_7  = bottleneck(bt3_6,train,output_filters=128,dilation_rate=[16,16],name='bt3_7_dl')
 
     # --------compression to get to a downsampled representation of segmentation---------
-    output_layer = tf.layers.conv2d(inputs=conv3_7,
+    output_layer = tf.layers.conv2d(inputs=bt3_7,
                                     filters=n_classes,
                                     kernel_size=[1,1],
                                     strides=[1,1],
@@ -300,7 +306,7 @@ def enet_encoder(input_layer,n_classes=10):
     return output_layer
 
 
-def enet_encoder_mnist(input_layer,n_classes=10):
+def enet_encoder_mnist(input_layer,train,n_classes=10):
 
     '''
     Slimmed down Enet encoder for mnist. Actually, does not look like enet at all.
@@ -314,6 +320,7 @@ def enet_encoder_mnist(input_layer,n_classes=10):
     ----------
     'input_layer' = input `Tensor` with type `float32` and
                     shape [batch_size,28,28,1]
+    'train' = a `boolean`: training or evaluation mode for dropout
     'n_classes' = an `Integer`: number of classes
 
     Returns
@@ -326,17 +333,17 @@ def enet_encoder_mnist(input_layer,n_classes=10):
 
     # --------first block---------
     # first bottleneck with downsampling
-    conv1_0  = bottleneck(out_init,output_filters=64,dropout_prob=0.5,
-                          downsample=True,name='conv1_0_ds')  # 7x7
+    bt1_0  = bottleneck(out_init,train,output_filters=64,dropout_prob=0.5,
+                          downsample=True,name='bt1_0_ds')  # 7x7
 
     # four bottlenecks without downsampling
-    conv1_1  = bottleneck(conv1_0,output_filters=64,dropout_prob=0.5,name='conv1_1')
-    conv1_2  = bottleneck(conv1_1,output_filters=64,dropout_prob=0.5,name='conv1_2')
-    conv1_3  = bottleneck(conv1_2,output_filters=64,dropout_prob=0.5,name='conv1_3')
-    conv1_4  = bottleneck(conv1_3,output_filters=64,dropout_prob=0.5,name='conv1_4')
+    bt1_1  = bottleneck(bt1_0,train,output_filters=64,dropout_prob=0.5,name='bt1_1')
+    bt1_2  = bottleneck(bt1_1,train,output_filters=64,dropout_prob=0.5,name='bt1_2')
+    bt1_3  = bottleneck(bt1_2,train,output_filters=64,dropout_prob=0.5,name='bt1_3')
+    bt1_4  = bottleneck(bt1_3,train,output_filters=64,dropout_prob=0.5,name='bt1_4')
 
     # --------logits---------
-    r_mean= tf.reduce_mean(conv1_4,axis=[1,2],keepdims=True)
+    r_mean= tf.reduce_mean(bt1_4,axis=[1,2],keepdims=True)
     r_mean_reshape = tf.reshape(r_mean, [-1, r_mean.get_shape().as_list()[-1]])
     r_mean = tf.identity(r_mean, 'final_reduce_mean')
     logits = tf.layers.dense(inputs=r_mean_reshape, units=n_classes)
@@ -345,7 +352,7 @@ def enet_encoder_mnist(input_layer,n_classes=10):
     return logits
 
 
-def enet_encoder_v3(input_layer,n_classes=10):
+def enet_encoder_v3(input_layer,train,n_classes=10):
 
     '''
     Enet encoder v3 for imagenet as in:
@@ -358,6 +365,7 @@ def enet_encoder_v3(input_layer,n_classes=10):
     ----------
     'input_layer' = input `Tensor` with type `float32` and
                     shape [batch_size,x_pixels,y_pixels,n_channels]
+    'train' = a `boolean`: training or evaluation mode for dropout
     'n_classes' = an `Integer`: number of classes
 
     Returns
@@ -370,39 +378,39 @@ def enet_encoder_v3(input_layer,n_classes=10):
 
     # --------first block---------
     # first bottleneck with downsampling
-    conv1_0  = bottleneck(out_init,output_filters=64,dropout_prob=0.01,downsample=True,name='conv1_0_ds')
+    bt1_0  = bottleneck(out_init,train,output_filters=64,dropout_prob=0.01,downsample=True,name='bt1_0_ds')
 
     # four bottlenecks without downsampling
-    conv1_1  = bottleneck(conv1_0,output_filters=64,dropout_prob=0.01,name='conv1_1')
-    conv1_2  = bottleneck(conv1_1,output_filters=64,dropout_prob=0.01,name='conv1_2')
-    conv1_3  = bottleneck(conv1_2,output_filters=64,dropout_prob=0.01,name='conv1_3')
-    conv1_4  = bottleneck(conv1_3,output_filters=64,dropout_prob=0.01,name='conv1_4')
+    bt1_1  = bottleneck(bt1_0,train,output_filters=64,dropout_prob=0.01,name='bt1_1')
+    bt1_2  = bottleneck(bt1_1,train,output_filters=64,dropout_prob=0.01,name='bt1_2')
+    bt1_3  = bottleneck(bt1_2,train,output_filters=64,dropout_prob=0.01,name='bt1_3')
+    bt1_4  = bottleneck(bt1_3,train,output_filters=64,dropout_prob=0.01,name='bt1_4')
 
     # --------second block---------
-    conv2_0  = bottleneck(conv1_4,output_filters=128,downsample=True,name='conv2_0_ds')
-    conv2_1  = bottleneck(conv2_0,output_filters=128,name='conv2_1')
-    conv2_2  = bottleneck(conv2_1,output_filters=128,dilation_rate=[2,2],name='conv2_2_dl')
-    conv2_3  = bottleneck(conv2_2,output_filters=128,kernel_size=[7,1],name='conv2_3_as')
-    conv2_4  = bottleneck(conv2_3,output_filters=128,dilation_rate=[4,4],name='conv2_4_dl')
-    conv2_5  = bottleneck(conv2_4,output_filters=128,name='conv2_5')
-    conv2_6  = bottleneck(conv2_5,output_filters=128,dilation_rate=[8,8],name='conv2_6_d')
-    conv2_7  = bottleneck(conv2_6,output_filters=128,kernel_size=[5,1],name='conv2_7_as')
-    conv2_8  = bottleneck(conv2_7,output_filters=256,dilation_rate=[16,16],name='conv2_8_dl')
-    conv2_9  = bottleneck(conv2_8,output_filters=256,downsample=True,name='conv2_9_ds')
+    bt2_0  = bottleneck(bt1_4,train,output_filters=128,downsample=True,name='bt2_0_ds')
+    bt2_1  = bottleneck(bt2_0,train,output_filters=128,name='bt2_1')
+    bt2_2  = bottleneck(bt2_1,train,output_filters=128,dilation_rate=[2,2],name='bt2_2_dl')
+    bt2_3  = bottleneck(bt2_2,train,output_filters=128,kernel_size=[7,1],name='bt2_3_as')
+    bt2_4  = bottleneck(bt2_3,train,output_filters=128,dilation_rate=[4,4],name='bt2_4_dl')
+    bt2_5  = bottleneck(bt2_4,train,output_filters=128,name='bt2_5')
+    bt2_6  = bottleneck(bt2_5,train,output_filters=128,dilation_rate=[8,8],name='bt2_6_d')
+    bt2_7  = bottleneck(bt2_6,train,output_filters=128,kernel_size=[5,1],name='bt2_7_as')
+    bt2_8  = bottleneck(bt2_7,train,output_filters=256,dilation_rate=[16,16],name='bt2_8_dl')
+    bt2_9  = bottleneck(bt2_8,train,output_filters=256,downsample=True,name='bt2_9_ds')
 
     # --------third block---------
-    conv3_0  = bottleneck(conv2_9,output_filters=256,name='conv3_0')
-    conv3_1  = bottleneck(conv3_0,output_filters=256,dilation_rate=[2,2],name='conv3_1_dl')
-    conv3_2  = bottleneck(conv3_1,output_filters=256,kernel_size=[7,1],name='conv3_2_as')
-    conv3_3  = bottleneck(conv3_2,output_filters=256,dilation_rate=[4,4],name='conv3_3_dl')
-    conv3_4  = bottleneck(conv3_3,output_filters=256,name='conv3_4')
-    conv3_5  = bottleneck(conv3_4,output_filters=256,dilation_rate=[8,8],name='conv3_5_d')
-    conv3_6  = bottleneck(conv3_5,output_filters=256,kernel_size=[5,1],name='conv3_6_as')
-    conv3_7  = bottleneck(conv3_6,output_filters=512,dilation_rate=[16,16],name='conv3_7_dl')
-    conv3_8  = bottleneck(conv3_8,output_filters=512,downsample=True,name='conv3_8_ds')
+    bt3_0  = bottleneck(bt2_9,train,output_filters=256,name='bt3_0')
+    bt3_1  = bottleneck(bt3_0,train,output_filters=256,dilation_rate=[2,2],name='bt3_1_dl')
+    bt3_2  = bottleneck(bt3_1,train,output_filters=256,kernel_size=[7,1],name='bt3_2_as')
+    bt3_3  = bottleneck(bt3_2,train,output_filters=256,dilation_rate=[4,4],name='bt3_3_dl')
+    bt3_4  = bottleneck(bt3_3,train,output_filters=256,name='bt3_4')
+    bt3_5  = bottleneck(bt3_4,train,output_filters=256,dilation_rate=[8,8],name='bt3_5_d')
+    bt3_6  = bottleneck(bt3_5,train,output_filters=256,kernel_size=[5,1],name='bt3_6_as')
+    bt3_7  = bottleneck(bt3_6,train,output_filters=512,dilation_rate=[16,16],name='bt3_7_dl')
+    bt3_8  = bottleneck(bt3_8,train,output_filters=512,downsample=True,name='bt3_8_ds')
 
     # --------logits---------
-    r_mean= tf.reduce_mean(conv3_8,axis=[1,2],keepdims=True)
+    r_mean= tf.reduce_mean(bt3_8,axis=[1,2],keepdims=True)
     r_mean = tf.identity(r_mean, 'final_reduce_mean')
     r_mean_reshape = tf.reshape(r_mean, [-1, x.get_shape().as_list()[-1]])
     logits = tf.layers.dense(inputs=r_mean_reshape, units=n_classes)
