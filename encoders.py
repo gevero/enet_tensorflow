@@ -340,7 +340,7 @@ def enet_encoder_mnist(input_layer,train,n_classes=10):
 
     # ---------Initial block---------
     # out_init =  init_block(input_layer) # 14x14
-    out_init  = bottleneck(input_layer=,train,output_filters=64,dropout_prob=0.5,
+    out_init  = bottleneck(input_layer,train,output_filters=64,dropout_prob=0.5,
                           downsample=True,name='init_block')
 
     # --------first block---------
