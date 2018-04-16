@@ -128,60 +128,67 @@ def bottleneck(input_layer,
 
             # bottleneck representation compression with valid padding
             # 1x1 usually, 2x2 if downsampling
-            main_1_1 = tf.layers.conv2d(inputs=input_layer,
+            main1_1 = tf.layers.conv2d(inputs=input_layer,
                                         filters=internal_filters,
                                         kernel_size=down_kernel,
                                         strides=down_strides,
-                                        use_bias=False)
-            main_1_2 = tf.layers.batch_normalization(main_1_1)  # batch norm
-            main_1_3 = prelu(main_1_2,name='main_1_3')     # PReLU activation
+                                        use_bias=False,
+                                        name='main1_1')
+            main1_2 = tf.layers.batch_normalization(main1_1,name='main1_2')  # batch norm
+            main1_3 = prelu(main1_2,name='main1_3')     # PReLU activation
 
 
             # central convolution
             asym_flag = kernel_size[0] != kernel_size[1]
-            main_1_4 = tf.layers.conv2d(inputs=main_1_3,          # main convolution
+            main1_4 = tf.layers.conv2d(inputs=main1_3,          # main convolution
                                     filters=internal_filters,
                                     kernel_size=kernel_size,
                                     strides=kernel_strides,
                                     padding=padding,
                                     dilation_rate=dilation_rate,
-                                    use_bias=not(asym_flag))      # no bias only for asymmetric conv
+                                    use_bias=not(asym_flag),
+                                    name='main1_4a')      # no bias only for asymmetric conv
             if asym_flag:                                         # second convolution if asymmetric
-                main_1_4 = tf.layers.conv2d(inputs=main_1_4,
+                main1_4 = tf.layers.conv2d(inputs=main1_4,
                                     filters=internal_filters,
                                     kernel_size=kernel_size[::-1],
                                     strides=kernel_strides,
                                     padding=padding,
-                                    dilation_rate=dilation_rate)
-            main_1_5 = tf.layers.batch_normalization(main_1_4)    # batchnorm
-            main_1_6 = prelu(main_1_5,name='main_1_6')  # PReLU
+                                    dilation_rate=dilation_rate,
+                                    name='main1_4b')
+            main1_5 = tf.layers.batch_normalization(main1_4,name='main1_5')    # batchnorm
+            main1_6 = prelu(main1_5,name='main1_6')  # PReLU
 
 
             # bottleneck representation expansion with 1x1 valid convolution
-            main_1_7 = tf.layers.conv2d(inputs=main_1_6,
+            main1_7 = tf.layers.conv2d(inputs=main1_6,
                                         filters=output_filters,
                                         kernel_size=[1,1],
                                         strides=[1,1],
-                                        use_bias=False)
-            main_1_8 = tf.layers.batch_normalization(main_1_7)  # batchnorm
-            main_1_9 = spatial_dropout(main_1_8,rate=dropout_prob,
-                                       train=train,name='dropout')  # dropout
+                                        use_bias=False,
+                                        name='main1_7')
+            main1_8 = tf.layers.batch_normalization(main1_7,name='main1_8')  # batchnorm
+            main1_9 = spatial_dropout(main1_8,rate=dropout_prob,
+                                       train=train,name='main1_9')  # dropout
 
             # -------skip connection-------
-            skip_1_1 = input_layer
+            skip1_1 = input_layer
             # downsampling
             if downsample:
-                skip_1_1 = tf.layers.max_pooling2d(inputs=skip_1_1,
+                skip1_1 = tf.layers.max_pooling2d(inputs=skip1_1,
                                                    pool_size=down_kernel,
-                                                   strides=down_strides)
+                                                   strides=down_strides,
+                                                   name='skip1_1a')
             # padding filter dimension if input_filters != output_filters
             if input_filters != output_filters:
                 n_pad = output_filters - input_filters
-                skip_1_1 = tf.pad(skip_1_1,tf.constant([[0,0],[0,0],[0,0],[n_pad,0]]))
+                skip1_1 = tf.pad(skip1_1,tf.constant([[0,0],[0,0],[0,0],[n_pad,0]]),
+                                 name='skip1_1b')
 
 
             # -------output-------
-            output_layer = prelu(main_1_9 + skip_1_1,name='output_layer')
+            output_layer = prelu(tf.add(main_1_9,skip1_1,name='addition'),
+                                 name='output_layer')
             return output_layer
 
 
