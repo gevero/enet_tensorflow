@@ -187,7 +187,7 @@ def bottleneck(input_layer,
 
 
             # -------output-------
-            output_layer = prelu(tf.add(main_1_9,skip1_1,name='addition'),
+            output_layer = prelu(tf.add(main1_9,skip1_1,name='addition'),
                                  name='output_layer')
             return output_layer
 
