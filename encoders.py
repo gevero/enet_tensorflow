@@ -29,7 +29,10 @@ def spatial_dropout(input_layer,rate=0.5,train=False,name=None):
             input_shape = input_layer.get_shape().as_list()
             batch_size = input_shape[0]
             filters = input_shape[3]
-            noise_shape = tf.constant(value=[batch_size, 1, 1, filters])
+            if batch_size == None:
+                noise_shape = tf.constant(value=[1, 1, 1, 1])
+            else:
+                noise_shape = tf.constant(value=[batch_size, 1, 1, filters])
 
             # spatial dropout
             drop_layer = tf.layers.dropout(input_layer,rate,
