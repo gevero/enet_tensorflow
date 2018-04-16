@@ -419,14 +419,14 @@ def enet_encoder_mnist(input_layer,train,n_classes=10):
                           downsample=True,name='bt1_0_ds')  # 7x7
 
     # four bottlenecks without downsampling
-    bt1_1  = bottleneck(bt1_0,train,output_filters=64,dropout_prob=0.5,name='bt1_1')
-    bt1_2  = bottleneck(bt1_1,train,output_filters=64,dropout_prob=0.5,name='bt1_2')
-    bt1_3  = bottleneck(bt1_2,train,output_filters=64,dropout_prob=0.5,name='bt1_3')
-    bt1_4  = bottleneck(bt1_3,train,output_filters=64,dropout_prob=0.5,name='bt1_4')
+    # bt1_1  = bottleneck(bt1_0,train,output_filters=64,dropout_prob=0.5,name='bt1_1')
+    # bt1_2  = bottleneck(bt1_1,train,output_filters=64,dropout_prob=0.5,name='bt1_2')
+    # bt1_3  = bottleneck(bt1_2,train,output_filters=64,dropout_prob=0.5,name='bt1_3')
+    # bt1_4  = bottleneck(bt1_3,train,output_filters=64,dropout_prob=0.5,name='bt1_4')
 
     # --------logits---------
-    bt_shape = bt1_4.get_shape().as_list()
-    bt1_4_flat = tf.reshape(bt1_4, [-1, bt_shape[1] * bt_shape[2] * bt_shape[3]])
+    bt_shape = bt1_0.get_shape().as_list()
+    bt1_0_flat = tf.reshape(bt1_0, [-1, bt_shape[1] * bt_shape[2] * bt_shape[3]])
     dense = tf.layers.dense(inputs=bt1_4_flat, units=1024, activation=tf.nn.relu)
     # r_mean= tf.reduce_mean(bt1_4,axis=[1,2],keepdims=True,name='r_mean')
     # r_mean_reshape = tf.reshape(r_mean, [-1, r_mean.get_shape().as_list()[-1]],
