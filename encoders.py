@@ -432,7 +432,8 @@ def enet_encoder_mnist(input_layer,train,n_classes=10):
     # r_mean_reshape = tf.reshape(r_mean, [-1, r_mean.get_shape().as_list()[-1]],
     #                             name='r_mean_reshape')
     # r_mean_reshape = tf.identity(r_mean_reshape,name='final_reduce_mean')
-    logits = tf.layers.dense(inputs=dense, units=n_classes,name='dense_logits')
+    dropout = tf.layers.dropout(inputs=dense, rate=0.4, training=train)
+    logits = tf.layers.dense(inputs=dropout, units=n_classes,name='dense_logits')
     logits = tf.identity(logits,name='logits')
 
     return logits
