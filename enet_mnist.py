@@ -19,7 +19,7 @@ def main(unused_argv):
     model_dir="./enet_mnist_model")
 
     # Set up logging for predictions
-    tensors_to_log = {"probabilities": "softmax_tensor"}
+    tensors_to_log = {"probabilities": "softmax_tensor","train_accuracy":"ciccio"}
     logging_hook = tf.train.LoggingTensorHook(
       tensors=tensors_to_log, every_n_iter=50)
 

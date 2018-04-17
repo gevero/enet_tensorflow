@@ -21,7 +21,7 @@ def enet_mnist_fn(features, labels, mode):
       # `logging_hook`.
       "probabilities": tf.nn.softmax(logits, name="softmax_tensor"),
       "train_accuracy": tf.metrics.accuracy(
-          labels=labels, predictions=tf.argmax(input=logits, axis=1))
+          labels=labels, predictions=tf.argmax(input=logits, axis=1),name="ciccio")
     }
     if mode == tf.estimator.ModeKeys.PREDICT:
         return tf.estimator.EstimatorSpec(mode=mode, predictions=predictions)
