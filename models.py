@@ -11,15 +11,17 @@ def enet_mnist_fn(features, labels, mode):
 
     # enet mnist encoder
     train = (mode == tf.estimator.ModeKeys.TRAIN)
-    # logits = enet_encoder_mnist(input_layer,train,n_classes=10)
-    logits = mnist_test(features,mode)
+    logits = enet_encoder_mnist(input_layer,train)
+    # logits = mnist_test(features,mode)
 
     predictions = {
       # Generate predictions (for PREDICT and EVAL mode)
       "classes": tf.argmax(input=logits, axis=1),
       # Add `softmax_tensor` to the graph. It is used for PREDICT and by the
       # `logging_hook`.
-      "probabilities": tf.nn.softmax(logits, name="softmax_tensor")
+      "probabilities": tf.nn.softmax(logits, name="softmax_tensor"),
+      "train_accuracy": tf.metrics.accuracy(
+          labels=labels, predictions=tf.argmax(input=logits, axis=1))
     }
     if mode == tf.estimator.ModeKeys.PREDICT:
         return tf.estimator.EstimatorSpec(mode=mode, predictions=predictions)
