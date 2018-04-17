@@ -459,8 +459,8 @@ def mnist_test(features,mode):
       activation=tf.nn.relu)
 
   # additional bottlenecks
-  train  = (mode == tf.estimator.ModeKeys.TRAIN)
-  bt1_1  = bottleneck(conv1,train,output_filters=32,dropout_prob=0.5,name='bt1_1')
+  # train  = (mode == tf.estimator.ModeKeys.TRAIN)
+  # bt1_1  = bottleneck(conv1,train,output_filters=32,dropout_prob=0.5,name='bt1_1')
 
   # Pooling Layer #1
   # First max pooling layer with a 2x2 filter and stride of 2
