@@ -1,7 +1,7 @@
 import tensorflow as tf
 import numpy as np
 
-def spatial_dropout(input_layer,rate=0.5,train=False,name=None):
+def spatial_dropout(input_layer,rate=0.5,train=False,name=None):  # Much simpler with tf.keras
     '''
     Simple dropout wrapper to perform spatial dropout. This is based on
     the implementation found in https://github.com/fregu856/segmentation
@@ -16,8 +16,8 @@ def spatial_dropout(input_layer,rate=0.5,train=False,name=None):
     'name' = a `String`: gives the name_scope and variable_scope
 
     Returns
-    -------
     'drop_layer' = A `Tensor` with the same type as `input_layer`.
+    -------
 
     '''
 
@@ -42,7 +42,7 @@ def spatial_dropout(input_layer,rate=0.5,train=False,name=None):
 
             return drop_layer
 
-def prelu(x, name='prelu'):
+def prelu(x, name='prelu'):  # also ready to go
     '''
     Parametric Rectified Linear Unit inspired by:
     https://stackoverflow.com/a/40264459
@@ -170,8 +170,8 @@ def bottleneck(input_layer,
                                         use_bias=False,
                                         name='main1_7')
             main1_8 = tf.layers.batch_normalization(main1_7,
-                                                    training=train,name='main1_8')  # batchnorm
             main1_9 = spatial_dropout(main1_8,rate=dropout_prob,
+                                                    training=train,name='main1_8')  # batchnorm
                                        train=train,name='main1_9')  # dropout
 
             # -------skip connection-------
