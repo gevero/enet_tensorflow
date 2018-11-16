@@ -1,0 +1,6 @@
+*.homer
+*.pyc
+MNIST-data
+.vscode
+.ropeproject
+notebooks/.ipynb_checkpoints
