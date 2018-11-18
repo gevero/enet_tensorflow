@@ -4,3 +4,4 @@ MNIST-data
 .vscode
 .ropeproject
 notebooks/.ipynb_checkpoints
+notebooks/logs
