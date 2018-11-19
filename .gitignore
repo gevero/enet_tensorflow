@@ -5,3 +5,4 @@ MNIST-data
 .ropeproject
 notebooks/.ipynb_checkpoints
 notebooks/logs
+logs
