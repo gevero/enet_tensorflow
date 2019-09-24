@@ -398,7 +398,6 @@ class BottleDeck(tf.keras.Model):
     'dilation_rate' = a `List`: dilation rate of the central convolution
     'internal_comp_ratio' = an `Integer`: compression ratio of the bottleneck
     'dropout_prob' = a `float`: dropout at the end of the main connection
-    'upsample' = a `String`: upsampling flag
     'name' = a `String`: name of the bottleneck
 
     Returns
@@ -433,7 +432,7 @@ class BottleDeck(tf.keras.Model):
         # bottleneck representation compression with valid padding
         # 1x1 usually, 2x2 if downsampling
         self.main1_1 = tf.keras.layers.Conv2D(self.internal_filters,
-                                              kernel=[1, 1],
+                                              kernel_size=[1, 1],
                                               strides=[1, 1],
                                               use_bias=False,
                                               name=self.name + '.' + 'main1_1')
