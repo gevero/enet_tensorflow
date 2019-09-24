@@ -424,7 +424,6 @@ class BottleDeck(tf.keras.Model):
         self.dilation_rate = dilation_rate
         self.internal_comp_ratio = internal_comp_ratio
         self.dropout_prob = dropout_prob
-        self.upsample = upsample
 
         # Derived parameters
         self.internal_filters = self.output_filters // self.internal_comp_ratio
