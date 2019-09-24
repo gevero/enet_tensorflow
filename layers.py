@@ -488,7 +488,7 @@ class BottleDeck(tf.keras.Model):
 
         # input filter from incoming layer, and upsample layer spatial shape
         input_filters = input_layer.get_shape().as_list()[-1]
-        upsample_layer_shape = upsample_layer.get_s, hape().as_list()[1:3]
+        upsample_layer_shape = upsample_layer.get_shape().as_list()[1:3]
 
         # ----- main connection ------
         main = self.main1_1(input_layer)
