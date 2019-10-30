@@ -1,15 +1,11 @@
 import tensorflow as tf
-from tensorflow.python.framework import tensor_shape
-from tensorflow.python.keras import backend
-from tensorflow.python.keras.engine.base_layer import Layer
-from tensorflow.python.keras.engine.input_spec import InputSpec
-from tensorflow.python.keras.utils import conv_utils
+from tensorflow_core.python.keras.utils import conv_utils
 
 # Tensorflow implementations of max_pooling and unpooling
 
 
 # Keras layers for pooling and unpooling
-class MaxPoolWithArgmax2D(Layer):
+class MaxPoolWithArgmax2D(tf.keras.layers.Layer):
     """2D Pooling layer with pooling indices.
 
     Arguments
@@ -40,14 +36,14 @@ class MaxPoolWithArgmax2D(Layer):
                  **kwargs):
         super(MaxPoolWithArgmax2D, self).__init__(name=name, **kwargs)
         if data_format is None:
-            data_format = backend.image_data_format()
+            data_format = tf.keras.backend.image_data_format()
         if strides is None:
             strides = pool_size
         self.pool_size = conv_utils.normalize_tuple(pool_size, 2, 'pool_size')
         self.strides = conv_utils.normalize_tuple(strides, 2, 'strides')
         self.padding = conv_utils.normalize_padding(padding)
         self.data_format = conv_utils.normalize_data_format(data_format)
-        self.input_spec = InputSpec(ndim=4)
+        self.input_spec = tf.keras.layers.InputSpec(ndim=4)
 
     def call(self, inputs):
 
@@ -71,7 +67,7 @@ class MaxPoolWithArgmax2D(Layer):
                     tf.transpose(argmax, perm=[0, 3, 1, 2]))
 
     def compute_output_shape(self, input_shape):
-        input_shape = tensor_shape.TensorShape(input_shape).as_list()
+        input_shape = tf.TensorShape(input_shape).as_list()
         if self.data_format == 'channels_first':
             rows = input_shape[2]
             cols = input_shape[3]
@@ -83,11 +79,9 @@ class MaxPoolWithArgmax2D(Layer):
         cols = conv_utils.conv_output_length(cols, self.pool_size[1],
                                              self.padding, self.strides[1])
         if self.data_format == 'channels_first':
-            return tensor_shape.TensorShape(
-                [input_shape[0], input_shape[1], rows, cols])
+            return tf.TensorShape([input_shape[0], input_shape[1], rows, cols])
         else:
-            return tensor_shape.TensorShape(
-                [input_shape[0], rows, cols, input_shape[3]])
+            return tf.TensorShape([input_shape[0], rows, cols, input_shape[3]])
 
     def get_config(self):
         config = {
@@ -100,13 +94,13 @@ class MaxPoolWithArgmax2D(Layer):
         return dict(list(base_config.items()) + list(config.items()))
 
 
-class MaxUnpool2D(Layer):
+class MaxUnpool2D(tf.keras.layers.Layer):
     def __init__(self, data_format='channels_last', name=None, **kwargs):
         super(MaxUnpool2D, self).__init__(**kwargs)
         if data_format is None:
-            data_format = backend.image_data_format()
+            data_format = tf.keras.backend.image_data_format()
         self.data_format = conv_utils.normalize_data_format(data_format)
-        self.input_spec = InputSpec(min_ndim=2, max_ndim=4)
+        self.input_spec = tf.keras.layers.InputSpec(min_ndim=2, max_ndim=4)
 
     def call(self, inputs, argmax, spatial_output_shape):
 
@@ -115,19 +109,25 @@ class MaxUnpool2D(Layer):
             spatial_output_shape, 2, 'spatial_output_shape')
 
         # getting input shape
-        input_shape = tf.shape(inputs)
+        # input_shape = tf.shape(inputs)
+        input_shape = inputs.get_shape().as_list()
 
         # checking if spatial shape is ok
         if self.data_format == 'channels_last':
             output_shape = (input_shape[0],) + \
                 spatial_output_shape + (input_shape[3],)
-            assert output_shape[1] * output_shape[2] > tf.math.reduce_max(
-                argmax), "HxW <= Max(argmax)"
+
+            out_tmp = output_shape[1] * output_shape[2] * output_shape[3]
+            argmax_tmp = tf.math.reduce_max(argmax).numpy()
+            diff_tmp = out_tmp - argmax_tmp
+
+            assert output_shape[1] * output_shape[2] * output_shape[
+                3] > tf.math.reduce_max(argmax).numpy(), "HxWxC <= Max(argmax)"
         else:
             output_shape = (input_shape[0],
                             input_shape[1]) + spatial_output_shape
-            assert output_shape[2] * output_shape[3] > tf.math.reduce_max(
-                argmax), "HxW <= Max(argmax)"
+            assert output_shape[1] * output_shape[2] * output_shape[
+                3] > tf.math.reduce_max(argmax).numpy(), "CxHxW <= Max(argmax)"
 
         # N * H_in * W_in * C
         flat_input_size = tf.reduce_prod(input_shape)
@@ -170,7 +170,7 @@ class MaxUnpool2D(Layer):
     def compute_output_shape(self, input_shape, spatial_output_shape):
 
         # getting input shape
-        input_shape = tensor_shape.TensorShape(input_shape).as_list()
+        input_shape = tf.TensorShape(input_shape).as_list()
 
         # standardize spatial_output_shape
         spatial_output_shape = conv_utils.normalize_tuple(
@@ -181,12 +181,12 @@ class MaxUnpool2D(Layer):
             output_shape = (input_shape[0],) + \
                 self.spatial_output_shape + (input_shape[3],)
             assert output_shape[1] * output_shape[2] > tf.math.reduce_max(
-                self.argmax), "HxW <= Max(argmax)"
+                self.argmax).numpy(), "HxW <= Max(argmax)"
         else:
             output_shape = (input_shape[0],
                             input_shape[1]) + self.spatial_output_shape
             assert output_shape[2] * output_shape[3] > tf.math.reduce_max(
-                self.argmax), "HxW <= Max(argmax)"
+                self.argmax).numpy(), "HxW <= Max(argmax)"
 
         return output_shape
 
@@ -252,6 +252,8 @@ class BottleNeck(tf.keras.Model):
 
         # Derived parameters
         self.internal_filters = self.output_filters // self.internal_comp_ratio
+        if self.internal_filters == 0:
+            self.internal_filters = 1
 
         # downsampling or not
         if self.downsample:
@@ -265,69 +267,71 @@ class BottleNeck(tf.keras.Model):
 
         # bottleneck representation compression with valid padding
         # 1x1 usually, 2x2 if downsampling
-        self.main1_1 = tf.keras.layers.Conv2D(self.internal_filters,
-                                              self.down_kernel,
-                                              strides=self.down_strides,
-                                              use_bias=False,
-                                              name=self.name + '.' + 'main1_1')
-        self.main1_2 = tf.keras.layers.BatchNormalization(name=self.name +
-                                                          '.' + 'main1_2')
-        self.main1_3 = tf.keras.layers.PReLU(name=self.name + '.' + 'main1_3')
+        self.ConvIn = tf.keras.layers.Conv2D(self.internal_filters,
+                                             self.down_kernel,
+                                             strides=self.down_strides,
+                                             use_bias=False,
+                                             name=self.name + '.' + 'ConvIn')
+        self.BNormIn = tf.keras.layers.BatchNormalization(name=self.name +
+                                                          '.' + 'BNormIn')
+        self.PreLuIn = tf.keras.layers.PReLU(name=self.name + '.' + 'PreLuIn')
 
         # central convolution
         self.asym_flag = self.kernel_size[0] != self.kernel_size[1]
-        self.main1_4 = tf.keras.layers.Conv2D(self.internal_filters,
-                                              self.kernel_size,
-                                              strides=self.kernel_strides,
-                                              padding=self.padding,
-                                              dilation_rate=self.dilation_rate,
-                                              use_bias=not (self.asym_flag),
-                                              name=self.name + '.' +
-                                              'main1_4a')
+        self.ConvMain = tf.keras.layers.Conv2D(
+            self.internal_filters,
+            self.kernel_size,
+            strides=self.kernel_strides,
+            padding=self.padding,
+            dilation_rate=self.dilation_rate,
+            use_bias=not (self.asym_flag),
+            name=self.name + '.' + 'ConvMain')
         if self.asym_flag:
-            self.main1_4b = tf.keras.layers.Conv2D(
+            self.ConvMainAsym = tf.keras.layers.Conv2D(
                 self.internal_filters,
                 self.kernel_size[::-1],
                 strides=self.kernel_strides,
                 padding=self.padding,
                 dilation_rate=self.dilation_rate,
-                name=self.name + '.' + 'main1_4b')
-        self.main1_5 = tf.keras.layers.BatchNormalization(name=self.name +
-                                                          '.' + 'main1_5')
-        self.main1_6 = tf.keras.layers.PReLU(name=self.name + '.' + 'main1_6')
+                name=self.name + '.' + 'ConvMainAsym')
+        self.BNormMain = tf.keras.layers.BatchNormalization(name=self.name +
+                                                            '.' + 'BNormMain')
+        self.PreLuMain = tf.keras.layers.PReLU(name=self.name + '.' +
+                                               'PreLuMain')
 
         # bottleneck representation expansion with 1x1 valid convolution
-        self.main1_7 = tf.keras.layers.Conv2D(self.output_filters, [1, 1],
+        self.ConvOut = tf.keras.layers.Conv2D(self.output_filters, [1, 1],
                                               strides=[1, 1],
                                               use_bias=False,
-                                              name=self.name + '.' + 'main1_7')
-        self.main1_8 = tf.keras.layers.BatchNormalization(name=self.name +
-                                                          '.' + 'main1_8')
-        self.main1_9 = tf.keras.layers.SpatialDropout2D(dropout_prob,
+                                              name=self.name + '.' + 'ConvOut')
+        self.BNormOut = tf.keras.layers.BatchNormalization(name=self.name +
+                                                           '.' + 'BNormOut')
+        self.DropOut = tf.keras.layers.SpatialDropout2D(dropout_prob,
                                                         name=self.name + '.' +
-                                                        'main1_9')
+                                                        'DropOut')
 
         # ------- skip connection layers -------
 
         # downsampling layer
-        self.skip1_1 = MaxPoolWithArgmax2D(pool_size=self.down_kernel,
-                                           strides=self.down_strides,
-                                           name=self.name + '.' + 'skip1_1a')
+        self.ArgMaxSkip = MaxPoolWithArgmax2D(pool_size=self.down_kernel,
+                                              strides=self.down_strides,
+                                              name=self.name + '.' +
+                                              'ArgMaxSkip')
 
         # matching filter dimension with learned 1x1 convolution
         # this is done differently than in vanilla enet, where
         # you shold just pad with zeros.
-        self.skip1_2 = tf.keras.layers.Conv2D(self.output_filters,
-                                              kernel_size=[1, 1],
-                                              padding='valid',
-                                              use_bias=False,
-                                              name=name + '.' +
-                                              'filter_matching')
+        self.ConvSkip = tf.keras.layers.Conv2D(self.output_filters,
+                                               kernel_size=[1, 1],
+                                               padding='valid',
+                                               use_bias=False,
+                                               name=name + '.' + 'ConvSkip')
 
         # ------- output layer -------
-        self.addition = tf.keras.layers.Add(name=self.name + '.' + 'addition')
-        self.prelu = tf.keras.layers.PReLU(name=self.name + '.' +
-                                           'output_layer')
+        self.AddMainSkip = tf.keras.layers.Add(name=self.name + '.' +
+                                               'AddSkip')
+        self.PreLuMainSkip = tf.keras.layers.PReLU(name=self.name + '.' +
+                                                   'PreLuSkip')
 
     def call(self, input_layer):
 
@@ -335,34 +339,39 @@ class BottleNeck(tf.keras.Model):
         input_filters = input_layer.get_shape().as_list()[-1]
 
         # ----- main connection ------
-        main = self.main1_1(input_layer)
-        main = self.main1_2(main)
-        main = self.main1_3(main)
-        main = self.main1_4(main)
+        # Bottleneck in
+        main = self.ConvIn(input_layer)
+        main = self.BNormIn(main)
+        main = self.PreLuIn(main)
+
+        # Bottleneck main
+        main = self.ConvMain(main)
         if self.asym_flag:
-            main = self.main1_4b(main)
-        main = self.main1_5(main)
-        main = self.main1_6(main)
-        main = self.main1_7(main)
-        main = self.main1_8(main)
-        main = self.main1_9(main)
+            main = self.ConvMainAsym(main)
+        main = self.BNormMain(main)
+        main = self.PreLuMain(main)
+
+        # Bottleneck out
+        main = self.ConvOut(main)
+        main = self.BNormOut(main)
+        main = self.DropOut(main)
 
         # ----- skip connection ------
         skip = input_layer
 
         # downsampling if necessary
         if self.downsample:
-            skip, argmax = self.skip1_1(input_layer)
+            skip, argmax = self.ArgMaxSkip(input_layer)
 
         # matching filter dimension with learned 1x1 convolution
         # this is done differently than in vanilla enet, where
-        # you shold just pad with zeros.
+        # you should just pad with zeros.
         if input_filters != self.output_filters:
-            skip = self.skip1_2(skip)
+            skip = self.ConvSkip(skip)
 
         # ------- output layer -------
-        addition_layer = self.addition([main, skip])
-        output_layer = self.prelu(addition_layer)
+        addition_layer = self.AddMainSkip([main, skip])
+        output_layer = self.PreLuMainSkip(addition_layer)
 
         # I need the input layer, I see no other way round
         # because i neet to pass it to the decoder
@@ -426,63 +435,66 @@ class BottleDeck(tf.keras.Model):
 
         # Derived parameters
         self.internal_filters = self.output_filters // self.internal_comp_ratio
+        if self.internal_filters == 0:
+            self.internal_filters = 1
 
         # ------- main connection layers -------
 
         # bottleneck representation compression with valid padding
         # 1x1 usually, 2x2 if downsampling
-        self.main1_1 = tf.keras.layers.Conv2D(self.internal_filters,
-                                              kernel_size=[1, 1],
-                                              strides=[1, 1],
-                                              use_bias=False,
-                                              name=self.name + '.' + 'main1_1')
-        self.main1_2 = tf.keras.layers.BatchNormalization(name=self.name +
-                                                          '.' + 'main1_2')
-        self.main1_3 = tf.keras.layers.PReLU(name=self.name + '.' + 'main1_3')
+        self.ConvIn = tf.keras.layers.Conv2D(self.internal_filters,
+                                             kernel_size=[1, 1],
+                                             strides=[1, 1],
+                                             use_bias=False,
+                                             name=self.name + '.' + 'ConvIn')
+        self.BNormIn = tf.keras.layers.BatchNormalization(name=self.name +
+                                                          '.' + 'BNormIn')
+        self.PreLuIn = tf.keras.layers.PReLU(name=self.name + '.' + 'PreLuIn')
 
         # central convolution: am i using "same" padding?
-        self.main1_4 = tf.keras.layers.Conv2DTranspose(
+        self.ConvMain = tf.keras.layers.Conv2DTranspose(
             self.internal_filters,
             self.kernel_size,
             strides=self.kernel_strides,
             padding=self.padding,
             dilation_rate=self.dilation_rate,
             use_bias=True,
-            name=self.name + '.' + 'main1_4a')
-        self.main1_5 = tf.keras.layers.BatchNormalization(name=self.name +
-                                                          '.' + 'main1_5')
-        self.main1_6 = tf.keras.layers.PReLU(name=self.name + '.' + 'main1_6')
+            name=self.name + '.' + 'ConvMain')
+        self.BNormMain = tf.keras.layers.BatchNormalization(name=self.name +
+                                                            '.' + 'BNormMain')
+        self.PreLuMain = tf.keras.layers.PReLU(name=self.name + '.' +
+                                               'PreLuMain')
 
         # bottleneck representation expansion with 1x1 valid convolution
-        self.main1_7 = tf.keras.layers.Conv2D(self.output_filters, [1, 1],
+        self.ConvOut = tf.keras.layers.Conv2D(self.output_filters, [1, 1],
                                               strides=[1, 1],
                                               use_bias=False,
-                                              name=self.name + '.' + 'main1_7')
-        self.main1_8 = tf.keras.layers.BatchNormalization(name=self.name +
-                                                          '.' + 'main1_8')
-        self.main1_9 = tf.keras.layers.SpatialDropout2D(dropout_prob,
+                                              name=self.name + '.' + 'ConvOut')
+        self.BNormOut = tf.keras.layers.BatchNormalization(name=self.name +
+                                                           '.' + 'BNormOut')
+        self.DropOut = tf.keras.layers.SpatialDropout2D(dropout_prob,
                                                         name=self.name + '.' +
-                                                        'main1_9')
+                                                        'DropOut')
 
         # ------- skip connection layers -------
 
-        # downsampling layer
-        self.skip1_1 = MaxUnpool2D(name=self.name + '.' + 'skip1_1a')
+        # convolution for the upsampling. It comes before the
+        # unpooling layer.
+        self.ConvSkip = tf.keras.layers.Conv2D(self.output_filters,
+                                               kernel_size=[1, 1],
+                                               padding='valid',
+                                               use_bias=False,
+                                               name=name + '.' + 'ConvSkip')
 
-        # matching filter dimension with learned 1x1 convolution
-        # this is done differently than in vanilla enet, where
-        # you shold just pad with zeros.
-        self.skip1_2 = tf.keras.layers.Conv2D(self.output_filters,
-                                              kernel_size=[1, 1],
-                                              padding='valid',
-                                              use_bias=False,
-                                              name=name + '.' +
-                                              'filter_matching')
+        # downsampling layer
+        self.MaxUnpoolSkip = MaxUnpool2D(name=self.name + '.' +
+                                         'MaxUnpoolSkip')
 
         # ------- output layer -------
-        self.addition = tf.keras.layers.Add(name=self.name + '.' + 'addition')
-        self.prelu = tf.keras.layers.PReLU(name=self.name + '.' +
-                                           'output_layer')
+        self.AddMainSkip = tf.keras.layers.Add(name=self.name + '.' +
+                                               'AddMainSkip')
+        self.PreluMainSkip = tf.keras.layers.PReLU(name=self.name + '.' +
+                                                   'PreluMainSkip')
 
     def call(self, input_layer, argmax, upsample_layer):
 
@@ -491,38 +503,35 @@ class BottleDeck(tf.keras.Model):
         upsample_layer_shape = upsample_layer.get_shape().as_list()[1:3]
 
         # ----- main connection ------
-        main = self.main1_1(input_layer)
-        main = self.main1_2(main)
-        main = self.main1_3(main)
+        # Bottleneck in
+        main = self.ConvIn(input_layer)
+        main = self.BNormIn(main)
+        main = self.PreLuIn(main)
 
-        main = self.main1_4(main)
-        main = self.main1_5(main)
-        main = self.main1_6(main)
+        # Bottleneck main
+        main = self.ConvMain(main)
+        main = self.BNormMain(main)
+        main = self.PreLuMain(main)
 
-        main = self.main1_7(main)
-        main = self.main1_8(main)
-        main = self.main1_9(main)
+        main = self.ConvOut(main)
+        main = self.BNormOut(main)
+        main = self.DropOut(main)
 
         # ----- skip connection ------
-        skip = input_layer
+        # matching channels before applying MaxUnpool
+        skip = self.ConvSkip(input_layer)
 
         # downsampling if necessary
-        skip = self.skip1_1(input_layer, argmax, upsample_layer_shape)
-
-        # matching filter dimension with learned 1x1 convolution
-        # this is done differently than in vanilla enet, where
-        # you shold just pad with zeros.
-        if input_filters != self.output_filters:
-            skip = self.skip1_2(skip)
+        skip = self.MaxUnpoolSkip(skip, argmax, upsample_layer_shape)
 
         # ------- output layer -------
-        addition_layer = self.addition([main, skip])
-        output_layer = self.prelu(addition_layer)
+        addition_layer = self.AddMainSkip([main, skip])
+        output_layer = self.PreluMainSkip(addition_layer)
 
         return output_layer
 
 
-class init_block(tf.keras.Model):
+class InitBlock(tf.keras.Model):
     '''
     Enet init_block as in:
     (1) Paszke, A.; Chaurasia, A.; Kim, S.; Culurciello, E. ENet: A Deep Neural Network
@@ -549,7 +558,7 @@ class init_block(tf.keras.Model):
                  pool_strides=[2, 2],
                  padding='valid',
                  name='init_block'):
-        super(init_block, self).__init__(name=name)
+        super(InitBlock, self).__init__(name=name)
 
         # ------- init_block parameters -------
         self.conv_filters = conv_filters

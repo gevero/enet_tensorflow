@@ -6,3 +6,4 @@ MNIST-data
 notebooks/.ipynb_checkpoints
 notebooks/logs
 logs
+*.png

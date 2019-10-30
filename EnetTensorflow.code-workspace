@@ -1,14 +1,12 @@
 {
 	"folders": [
 		{
-			"path": "/home/giovi/data/work/machine_learning/github/ENet-training"
-		},
-		{
 			"path": "."
 		},
 		{
 			"path": "/home/giovi/data/work/machine_learning/github/ENet-Real-Time-Semantic-Segmentation"
 		}
 	],
-	"settings": {}
+	"settings": {
+	}
 }
