@@ -117,17 +117,13 @@ class MaxUnpool2D(tf.keras.layers.Layer):
             output_shape = (input_shape[0],) + \
                 spatial_output_shape + (input_shape[3],)
 
-            out_tmp = output_shape[1] * output_shape[2] * output_shape[3]
-            argmax_tmp = tf.math.reduce_max(argmax).numpy()
-            diff_tmp = out_tmp - argmax_tmp
-
             assert output_shape[1] * output_shape[2] * output_shape[
-                3] > tf.math.reduce_max(argmax).numpy(), "HxWxC <= Max(argmax)"
+                3] > tf.math.reduce_max(argmax), "HxWxC <= Max(argmax)"
         else:
             output_shape = (input_shape[0],
                             input_shape[1]) + spatial_output_shape
             assert output_shape[1] * output_shape[2] * output_shape[
-                3] > tf.math.reduce_max(argmax).numpy(), "CxHxW <= Max(argmax)"
+                3] > tf.math.reduce_max(argmax), "CxHxW <= Max(argmax)"
 
         # N * H_in * W_in * C
         flat_input_size = tf.reduce_prod(input_shape)
