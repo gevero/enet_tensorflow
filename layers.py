@@ -45,6 +45,7 @@ class MaxPoolWithArgmax2D(tf.keras.layers.Layer):
         self.padding = conv_utils.normalize_padding(padding)
         self.data_format = conv_utils.normalize_data_format(data_format)
         self.input_spec = tf.keras.layers.InputSpec(ndim=4)
+        self._dynamic = dynamic
 
     def call(self, inputs):
 
@@ -106,6 +107,7 @@ class MaxUnpool2D(tf.keras.layers.Layer):
             data_format = tf.keras.backend.image_data_format()
         self.data_format = conv_utils.normalize_data_format(data_format)
         self.input_spec = tf.keras.layers.InputSpec(min_ndim=2, max_ndim=4)
+        self._dynamic = dynamic
 
     def call(self, inputs, argmax, spatial_output_shape):
 
@@ -251,6 +253,7 @@ class BottleNeck(tf.keras.Model):
         self.internal_comp_ratio = internal_comp_ratio
         self.dropout_prob = dropout_prob
         self.downsample = downsample
+        self._dynamic = dynamic
 
         # Derived parameters
         self.internal_filters = self.output_filters // self.internal_comp_ratio
@@ -423,6 +426,7 @@ class BottleDeck(tf.keras.Model):
                  dilation_rate=[1, 1],
                  internal_comp_ratio=4,
                  dropout_prob=0.1,
+                 dynamic=True,
                  name='BottleDeck'):
         super(BottleDeck, self).__init__(name=name)
 
@@ -434,6 +438,7 @@ class BottleDeck(tf.keras.Model):
         self.dilation_rate = dilation_rate
         self.internal_comp_ratio = internal_comp_ratio
         self.dropout_prob = dropout_prob
+        self._dynamic = dynamic
 
         # Derived parameters
         self.internal_filters = self.output_filters // self.internal_comp_ratio
@@ -559,6 +564,7 @@ class InitBlock(tf.keras.Model):
                  pool_size=[2, 2],
                  pool_strides=[2, 2],
                  padding='valid',
+                 dynamic=True,
                  name='init_block'):
         super(InitBlock, self).__init__(name=name)
 
@@ -569,6 +575,7 @@ class InitBlock(tf.keras.Model):
         self.pool_size = pool_size
         self.pool_strides = pool_strides
         self.padding = padding
+        self._dynamic = dynamic
 
         # ------- init_block layers -------
 

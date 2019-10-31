@@ -21,11 +21,12 @@ class EnetEncoder(tf.keras.Model):
     -------
     'output_layer' = A `Tensor` with the same type as `input_layer`
     '''
-    def __init__(self, C=10):
+    def __init__(self, C=10, dynamic=True),:
         super(EnetEncoder, self).__init__()
 
         # initialize parameters
         self.C = C
+        self._dynamic = dynamic
 
         # layers
         self.InitBlock = InitBlock(conv_filters=13)
