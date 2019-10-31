@@ -73,11 +73,11 @@ def tf_dataset_generator(dataset_path,
 
         data_set = data_set.shuffle(buffer_size=shuffle_buffer_size)
 
-        # Repeat forever
-        data_set = data_set.repeat()
-
         # define the batch size
         data_set = data_set.batch(batch_size)
+
+        # Repeat forever
+        data_set = data_set.repeat()
 
     # `prefetch` lets the dataset fetch batches in the background while the
     # model is training.
