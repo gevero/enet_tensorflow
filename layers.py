@@ -32,6 +32,7 @@ class MaxPoolWithArgmax2D(tf.keras.layers.Layer):
                  strides,
                  padding='valid',
                  data_format=None,
+                 dynamic=True,
                  name=None,
                  **kwargs):
         super(MaxPoolWithArgmax2D, self).__init__(name=name, **kwargs)
@@ -95,7 +96,11 @@ class MaxPoolWithArgmax2D(tf.keras.layers.Layer):
 
 
 class MaxUnpool2D(tf.keras.layers.Layer):
-    def __init__(self, data_format='channels_last', name=None, **kwargs):
+    def __init__(self,
+                 data_format='channels_last',
+                 dynamic=True,
+                 name=None,
+                 **kwargs):
         super(MaxUnpool2D, self).__init__(**kwargs)
         if data_format is None:
             data_format = tf.keras.backend.image_data_format()
@@ -118,12 +123,12 @@ class MaxUnpool2D(tf.keras.layers.Layer):
                 spatial_output_shape + (input_shape[3],)
 
             assert output_shape[1] * output_shape[2] * output_shape[
-                3] > tf.math.reduce_max(argmax), "HxWxC <= Max(argmax)"
+                3] > tf.math.reduce_max(argmax).numpy(), "HxWxC <= Max(argmax)"
         else:
             output_shape = (input_shape[0],
                             input_shape[1]) + spatial_output_shape
             assert output_shape[1] * output_shape[2] * output_shape[
-                3] > tf.math.reduce_max(argmax), "CxHxW <= Max(argmax)"
+                3] > tf.math.reduce_max(argmax).numpy(), "CxHxW <= Max(argmax)"
 
         # N * H_in * W_in * C
         flat_input_size = tf.reduce_prod(input_shape)
@@ -233,6 +238,7 @@ class BottleNeck(tf.keras.Model):
                  internal_comp_ratio=4,
                  dropout_prob=0.1,
                  downsample=False,
+                 dynamic=True,
                  name='BottleEnc'):
         super(BottleNeck, self).__init__(name=name)
 
