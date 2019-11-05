@@ -32,7 +32,6 @@ class MaxPoolWithArgmax2D(tf.keras.layers.Layer):
                  strides,
                  padding='valid',
                  data_format=None,
-                 dynamic=True,
                  name=None,
                  **kwargs):
         super(MaxPoolWithArgmax2D, self).__init__(name=name, **kwargs)
@@ -45,7 +44,6 @@ class MaxPoolWithArgmax2D(tf.keras.layers.Layer):
         self.padding = conv_utils.normalize_padding(padding)
         self.data_format = conv_utils.normalize_data_format(data_format)
         self.input_spec = tf.keras.layers.InputSpec(ndim=4)
-        self._dynamic = dynamic
 
     def call(self, inputs):
 
@@ -97,17 +95,12 @@ class MaxPoolWithArgmax2D(tf.keras.layers.Layer):
 
 
 class MaxUnpool2D(tf.keras.layers.Layer):
-    def __init__(self,
-                 data_format='channels_last',
-                 dynamic=True,
-                 name=None,
-                 **kwargs):
+    def __init__(self, data_format='channels_last', name=None, **kwargs):
         super(MaxUnpool2D, self).__init__(**kwargs)
         if data_format is None:
             data_format = tf.keras.backend.image_data_format()
         self.data_format = conv_utils.normalize_data_format(data_format)
         self.input_spec = tf.keras.layers.InputSpec(min_ndim=2, max_ndim=4)
-        self._dynamic = dynamic
 
     def call(self, inputs, argmax, spatial_output_shape):
 
@@ -117,22 +110,24 @@ class MaxUnpool2D(tf.keras.layers.Layer):
 
         # getting input shape
         # input_shape = tf.shape(inputs)
-        input_shape = inputs.get_shape().as_list()
+        # input_shape = inputs.get_shape().as_list()
+        input_shape = tf.shape(inputs)
 
         # checking if spatial shape is ok
         if self.data_format == 'channels_last':
             output_shape = (input_shape[0],) + \
                 spatial_output_shape + (input_shape[3],)
 
-            assert output_shape[1] * output_shape[2] * output_shape[
-                3] > tf.math.reduce_max(argmax).numpy(), "HxWxC <= Max(argmax)"
+            # assert output_shape[1] * output_shape[2] * output_shape[
+            #     3] > tf.math.reduce_max(argmax).numpy(), "HxWxC <= Max(argmax)"
         else:
             output_shape = (input_shape[0],
                             input_shape[1]) + spatial_output_shape
-            assert output_shape[1] * output_shape[2] * output_shape[
-                3] > tf.math.reduce_max(argmax).numpy(), "CxHxW <= Max(argmax)"
+            # assert output_shape[1] * output_shape[2] * output_shape[
+            #     3] > tf.math.reduce_max(argmax).numpy(), "CxHxW <= Max(argmax)"
 
         # N * H_in * W_in * C
+        # flat_input_size = tf.reduce_prod(input_shape)
         flat_input_size = tf.reduce_prod(input_shape)
 
         # flat output_shape = [N, H_out * W_out * C]
@@ -166,14 +161,13 @@ class MaxUnpool2D(tf.keras.layers.Layer):
                             inputs_,
                             shape=tf.cast(flat_output_shape, tf.int64))
         ret = tf.reshape(ret, output_shape)
-        # ret.set_shape(output_shape)
 
         return ret
 
     def compute_output_shape(self, input_shape, spatial_output_shape):
 
         # getting input shape
-        input_shape = tf.TensorShape(input_shape).as_list()
+        input_shape = tf.Shape(input_shape)
 
         # standardize spatial_output_shape
         spatial_output_shape = conv_utils.normalize_tuple(
@@ -183,23 +177,23 @@ class MaxUnpool2D(tf.keras.layers.Layer):
         if self.data_format == 'channels_last':
             output_shape = (input_shape[0],) + \
                 self.spatial_output_shape + (input_shape[3],)
-            assert output_shape[1] * output_shape[2] > tf.math.reduce_max(
-                self.argmax).numpy(), "HxW <= Max(argmax)"
+            # assert output_shape[1] * output_shape[2] > tf.math.reduce_max(
+            #     self.argmax).numpy(), "HxW <= Max(argmax)"
         else:
             output_shape = (input_shape[0],
                             input_shape[1]) + self.spatial_output_shape
-            assert output_shape[2] * output_shape[3] > tf.math.reduce_max(
-                self.argmax).numpy(), "HxW <= Max(argmax)"
+            # assert output_shape[2] * output_shape[3] > tf.math.reduce_max(
+            #     self.argmax).numpy(), "HxW <= Max(argmax)"
 
         return output_shape
 
-        def get_config(self):
-            config = {
-                'spatial_output_shape': self.spatial_output_shape,
-                'data_format': self.data_format
-            }
-            base_config = super(MaxPoolingWithArgmax2D, self).get_config()
-            return dict(list(base_config.items()) + list(config.items()))
+    def get_config(self):
+        config = {
+            'spatial_output_shape': self.spatial_output_shape,
+            'data_format': self.data_format
+        }
+        base_config = super(MaxPoolingWithArgmax2D, self).get_config()
+        return dict(list(base_config.items()) + list(config.items()))
 
 
 class BottleNeck(tf.keras.Model):
@@ -240,9 +234,9 @@ class BottleNeck(tf.keras.Model):
                  internal_comp_ratio=4,
                  dropout_prob=0.1,
                  downsample=False,
-                 dynamic=True,
-                 name='BottleEnc'):
-        super(BottleNeck, self).__init__(name=name)
+                 name='BottleEnc',
+                 **kwargs):
+        super(BottleNeck, self).__init__(name=name, **kwargs)
 
         # ------- bottleneck parameters -------
         self.output_filters = output_filters
@@ -253,7 +247,6 @@ class BottleNeck(tf.keras.Model):
         self.internal_comp_ratio = internal_comp_ratio
         self.dropout_prob = dropout_prob
         self.downsample = downsample
-        self._dynamic = dynamic
 
         # Derived parameters
         self.internal_filters = self.output_filters // self.internal_comp_ratio
@@ -426,9 +419,9 @@ class BottleDeck(tf.keras.Model):
                  dilation_rate=[1, 1],
                  internal_comp_ratio=4,
                  dropout_prob=0.1,
-                 dynamic=True,
-                 name='BottleDeck'):
-        super(BottleDeck, self).__init__(name=name)
+                 name='BottleDeck',
+                 **kwargs):
+        super(BottleDeck, self).__init__(name=name, **kwargs)
 
         # ------- bottleneck parameters -------
         self.output_filters = output_filters
@@ -438,7 +431,6 @@ class BottleDeck(tf.keras.Model):
         self.dilation_rate = dilation_rate
         self.internal_comp_ratio = internal_comp_ratio
         self.dropout_prob = dropout_prob
-        self._dynamic = dynamic
 
         # Derived parameters
         self.internal_filters = self.output_filters // self.internal_comp_ratio
@@ -564,9 +556,9 @@ class InitBlock(tf.keras.Model):
                  pool_size=[2, 2],
                  pool_strides=[2, 2],
                  padding='valid',
-                 dynamic=True,
-                 name='init_block'):
-        super(InitBlock, self).__init__(name=name)
+                 name='init_block',
+                 **kwargs):
+        super(InitBlock, self).__init__(name=name, **kwargs)
 
         # ------- init_block parameters -------
         self.conv_filters = conv_filters
@@ -575,7 +567,6 @@ class InitBlock(tf.keras.Model):
         self.pool_size = pool_size
         self.pool_strides = pool_strides
         self.padding = padding
-        self._dynamic = dynamic
 
         # ------- init_block layers -------
 

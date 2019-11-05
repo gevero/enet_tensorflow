@@ -21,17 +21,16 @@ class EnetEncoder(tf.keras.Model):
     -------
     'output_layer' = A `Tensor` with the same type as `input_layer`
     '''
-    def __init__(self, C=10, dynamic=True):
-        super(EnetEncoder, self).__init__()
+    def __init__(self, C=12, **kwargs):
+        super(EnetEncoder, self).__init__(**kwargs)
 
         # initialize parameters
         self.C = C
-        self._dynamic = dynamic
 
-        # layers
+        # # layers
         self.InitBlock = InitBlock(conv_filters=13)
 
-        # first block of bottlenecks
+        # # first block of bottlenecks
         self.BNeck1_0 = BottleNeck(output_filters=64,
                                    downsample=True,
                                    dropout_prob=0.01,
@@ -49,7 +48,7 @@ class EnetEncoder(tf.keras.Model):
                                    dropout_prob=0.01,
                                    name='BNeck1_4')
 
-        # second block of bottlenecks
+        # # second block of bottlenecks
         self.BNeck2_0 = BottleNeck(output_filters=128,
                                    downsample=True,
                                    name='BNeck2_0')
@@ -74,7 +73,7 @@ class EnetEncoder(tf.keras.Model):
                                    dilation_rate=(16, 16),
                                    name='BNeck2_8')
 
-        # third block of bottlenecks
+        # # third block of bottlenecks
         self.BNeck3_1 = BottleNeck(output_filters=128, name='BNeck3_1')
         self.BNeck3_2 = BottleNeck(output_filters=128,
                                    dilation_rate=(2, 2),
@@ -96,7 +95,7 @@ class EnetEncoder(tf.keras.Model):
                                    dilation_rate=(16, 16),
                                    name='BNeck3_8')
 
-        # fourth block of bottlenecks
+        # # fourth block of bottlenecks
         self.BNeck4_0 = BottleDeck(output_filters=64,
                                    internal_comp_ratio=2,
                                    name='BNeck4_0')
@@ -114,8 +113,13 @@ class EnetEncoder(tf.keras.Model):
                                                         kernel_size=(3, 3),
                                                         strides=(2, 2),
                                                         padding='same',
+                                                        activation='softmax',
                                                         name=self.name + '.' +
                                                         'FullConv')
+
+        # # Helper output layer
+        self.Helper = tf.keras.layers.Conv2D(self.C, (3, 3),
+                                             activation='softmax')
 
     def call(self, inputs):
 
@@ -162,6 +166,26 @@ class EnetEncoder(tf.keras.Model):
         # final full conv to the segmentation maps
         x = self.FullConv(x)
 
+        return x
+
+
+class TestModel(tf.keras.Model):
+    def __init__(self, nc=12):
+        super(TestModel, self).__init__()
+        self.b1 = tf.keras.layers.Conv2D(32, (3, 3), activation='relu')
+        self.b2 = tf.keras.layers.MaxPooling2D((2, 2))
+        self.b3 = tf.keras.layers.Conv2D(64, (3, 3), activation='relu')
+        self.b4 = tf.keras.layers.MaxPooling2D((2, 2))
+        self.b5 = tf.keras.layers.Conv2D(64, (3, 3), activation='relu')
+        self.b6 = tf.keras.layers.Conv2D(nc, (3, 3), activation='softmax')
+
+    def call(self, inputs):
+        x = self.b1(inputs)
+        x = self.b2(x)
+        x = self.b3(x)
+        x = self.b4(x)
+        x = self.b5(x)
+        x = self.b6(x)
         return x
 
 

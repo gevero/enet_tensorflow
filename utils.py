@@ -28,10 +28,14 @@ def process_path(file_path):
     img = tf.io.read_file(img_file)
     img = tf.image.decode_png(img, channels=3)
     img = tf.image.convert_image_dtype(img, tf.float32)
+    img = tf.image.resize(img, [360, 480])
 
     # decoding label
+    print(label_file)
     iml = tf.io.read_file(label_file)
     iml = tf.image.decode_png(iml, channels=1)
+    iml = tf.image.convert_image_dtype(iml, tf.uint8)
+    iml = tf.image.resize(iml, [360, 480], method='nearest')
 
     return img, iml
 
@@ -57,7 +61,8 @@ def tf_dataset_generator(dataset_path,
     data_filelist_ds = tf.data.Dataset.list_files(dataset_path + '/*')
 
     # create the labeled dataset (returns (img,label) pairs)
-    data_set = data_filelist_ds.map(process_path)
+    data_set = data_filelist_ds.map(
+        process_path, num_parallel_calls=tf.data.experimental.AUTOTUNE)
 
     # For a small dataset, only load it once, and keep it in memory.
     # use `.cache(filename)` to cache preprocessing work for datasets that
