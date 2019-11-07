@@ -233,6 +233,7 @@ class BottleNeck(tf.keras.Model):
                  dilation_rate=[1, 1],
                  internal_comp_ratio=4,
                  dropout_prob=0.1,
+                 l2=0.0,
                  downsample=False,
                  name='BottleEnc',
                  **kwargs):
@@ -246,6 +247,7 @@ class BottleNeck(tf.keras.Model):
         self.dilation_rate = dilation_rate
         self.internal_comp_ratio = internal_comp_ratio
         self.dropout_prob = dropout_prob
+        self.l2 = l2
         self.downsample = downsample
 
         # Derived parameters
@@ -265,11 +267,13 @@ class BottleNeck(tf.keras.Model):
 
         # bottleneck representation compression with valid padding
         # 1x1 usually, 2x2 if downsampling
-        self.ConvIn = tf.keras.layers.Conv2D(self.internal_filters,
-                                             self.down_kernel,
-                                             strides=self.down_strides,
-                                             use_bias=False,
-                                             name=self.name + '.' + 'ConvIn')
+        self.ConvIn = tf.keras.layers.Conv2D(
+            self.internal_filters,
+            self.down_kernel,
+            strides=self.down_strides,
+            use_bias=False,
+            kernel_regularizer=tf.keras.regularizers.l2(l2),
+            name=self.name + '.' + 'ConvIn')
         self.BNormIn = tf.keras.layers.BatchNormalization(name=self.name +
                                                           '.' + 'BNormIn')
         self.PreLuIn = tf.keras.layers.PReLU(name=self.name + '.' + 'PreLuIn')
@@ -283,6 +287,7 @@ class BottleNeck(tf.keras.Model):
             padding=self.padding,
             dilation_rate=self.dilation_rate,
             use_bias=not (self.asym_flag),
+            kernel_regularizer=tf.keras.regularizers.l2(l2),
             name=self.name + '.' + 'ConvMain')
         if self.asym_flag:
             self.ConvMainAsym = tf.keras.layers.Conv2D(
@@ -291,6 +296,7 @@ class BottleNeck(tf.keras.Model):
                 strides=self.kernel_strides,
                 padding=self.padding,
                 dilation_rate=self.dilation_rate,
+                kernel_regularizer=tf.keras.regularizers.l2(l2),
                 name=self.name + '.' + 'ConvMainAsym')
         self.BNormMain = tf.keras.layers.BatchNormalization(name=self.name +
                                                             '.' + 'BNormMain')
@@ -298,10 +304,12 @@ class BottleNeck(tf.keras.Model):
                                                'PreLuMain')
 
         # bottleneck representation expansion with 1x1 valid convolution
-        self.ConvOut = tf.keras.layers.Conv2D(self.output_filters, [1, 1],
-                                              strides=[1, 1],
-                                              use_bias=False,
-                                              name=self.name + '.' + 'ConvOut')
+        self.ConvOut = tf.keras.layers.Conv2D(
+            self.output_filters, [1, 1],
+            strides=[1, 1],
+            use_bias=False,
+            kernel_regularizer=tf.keras.regularizers.l2(l2),
+            name=self.name + '.' + 'ConvOut')
         self.BNormOut = tf.keras.layers.BatchNormalization(name=self.name +
                                                            '.' + 'BNormOut')
         self.DropOut = tf.keras.layers.SpatialDropout2D(dropout_prob,
@@ -319,11 +327,13 @@ class BottleNeck(tf.keras.Model):
         # matching filter dimension with learned 1x1 convolution
         # this is done differently than in vanilla enet, where
         # you shold just pad with zeros.
-        self.ConvSkip = tf.keras.layers.Conv2D(self.output_filters,
-                                               kernel_size=[1, 1],
-                                               padding='valid',
-                                               use_bias=False,
-                                               name=name + '.' + 'ConvSkip')
+        self.ConvSkip = tf.keras.layers.Conv2D(
+            self.output_filters,
+            kernel_size=[1, 1],
+            padding='valid',
+            use_bias=False,
+            kernel_regularizer=tf.keras.regularizers.l2(l2),
+            name=name + '.' + 'ConvSkip')
 
         # ------- output layer -------
         self.AddMainSkip = tf.keras.layers.Add(name=self.name + '.' +
@@ -419,6 +429,7 @@ class BottleDeck(tf.keras.Model):
                  dilation_rate=[1, 1],
                  internal_comp_ratio=4,
                  dropout_prob=0.1,
+                 l2=0.0,
                  name='BottleDeck',
                  **kwargs):
         super(BottleDeck, self).__init__(name=name, **kwargs)
@@ -431,6 +442,7 @@ class BottleDeck(tf.keras.Model):
         self.dilation_rate = dilation_rate
         self.internal_comp_ratio = internal_comp_ratio
         self.dropout_prob = dropout_prob
+        self.l2 = l2
 
         # Derived parameters
         self.internal_filters = self.output_filters // self.internal_comp_ratio
@@ -441,11 +453,13 @@ class BottleDeck(tf.keras.Model):
 
         # bottleneck representation compression with valid padding
         # 1x1 usually, 2x2 if downsampling
-        self.ConvIn = tf.keras.layers.Conv2D(self.internal_filters,
-                                             kernel_size=[1, 1],
-                                             strides=[1, 1],
-                                             use_bias=False,
-                                             name=self.name + '.' + 'ConvIn')
+        self.ConvIn = tf.keras.layers.Conv2D(
+            self.internal_filters,
+            kernel_size=[1, 1],
+            strides=[1, 1],
+            use_bias=False,
+            kernel_regularizer=tf.keras.regularizers.l2(l2),
+            name=self.name + '.' + 'ConvIn')
         self.BNormIn = tf.keras.layers.BatchNormalization(name=self.name +
                                                           '.' + 'BNormIn')
         self.PreLuIn = tf.keras.layers.PReLU(name=self.name + '.' + 'PreLuIn')
@@ -458,6 +472,7 @@ class BottleDeck(tf.keras.Model):
             padding=self.padding,
             dilation_rate=self.dilation_rate,
             use_bias=True,
+            kernel_regularizer=tf.keras.regularizers.l2(l2),
             name=self.name + '.' + 'ConvMain')
         self.BNormMain = tf.keras.layers.BatchNormalization(name=self.name +
                                                             '.' + 'BNormMain')
@@ -465,10 +480,12 @@ class BottleDeck(tf.keras.Model):
                                                'PreLuMain')
 
         # bottleneck representation expansion with 1x1 valid convolution
-        self.ConvOut = tf.keras.layers.Conv2D(self.output_filters, [1, 1],
-                                              strides=[1, 1],
-                                              use_bias=False,
-                                              name=self.name + '.' + 'ConvOut')
+        self.ConvOut = tf.keras.layers.Conv2D(
+            self.output_filters, [1, 1],
+            strides=[1, 1],
+            use_bias=False,
+            kernel_regularizer=tf.keras.regularizers.l2(l2),
+            name=self.name + '.' + 'ConvOut')
         self.BNormOut = tf.keras.layers.BatchNormalization(name=self.name +
                                                            '.' + 'BNormOut')
         self.DropOut = tf.keras.layers.SpatialDropout2D(dropout_prob,
@@ -479,11 +496,13 @@ class BottleDeck(tf.keras.Model):
 
         # convolution for the upsampling. It comes before the
         # unpooling layer.
-        self.ConvSkip = tf.keras.layers.Conv2D(self.output_filters,
-                                               kernel_size=[1, 1],
-                                               padding='valid',
-                                               use_bias=False,
-                                               name=name + '.' + 'ConvSkip')
+        self.ConvSkip = tf.keras.layers.Conv2D(
+            self.output_filters,
+            kernel_size=[1, 1],
+            padding='valid',
+            use_bias=False,
+            kernel_regularizer=tf.keras.regularizers.l2(l2),
+            name=name + '.' + 'ConvSkip')
 
         # downsampling layer
         self.MaxUnpoolSkip = MaxUnpool2D(name=self.name + '.' +
@@ -556,6 +575,7 @@ class InitBlock(tf.keras.Model):
                  pool_size=[2, 2],
                  pool_strides=[2, 2],
                  padding='valid',
+                 l2=0.0,
                  name='init_block',
                  **kwargs):
         super(InitBlock, self).__init__(name=name, **kwargs)
@@ -572,10 +592,12 @@ class InitBlock(tf.keras.Model):
 
         # conv connection: need the padding to match the dimension of pool_init
         self.padded_init = tf.keras.layers.ZeroPadding2D()
-        self.conv_init = tf.keras.layers.Conv2D(conv_filters,
-                                                kernel_size,
-                                                strides=kernel_strides,
-                                                padding='valid')
+        self.conv_init = tf.keras.layers.Conv2D(
+            conv_filters,
+            kernel_size,
+            strides=kernel_strides,
+            kernel_regularizer=tf.keras.regularizers.l2(l2),
+            padding='valid')
 
         # maxpool, where pool_init is to be concatenated with conv_init
         self.pool_init = tf.keras.layers.MaxPool2D(pool_size=pool_size,
