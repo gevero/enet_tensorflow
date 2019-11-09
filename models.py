@@ -3,7 +3,7 @@ from layers import BottleDeck, BottleNeck, InitBlock
 import numpy as np
 
 
-class Enet(tf.keras.Model):
+class EnetModel(tf.keras.Model):
     '''
     Enet encoder.
     (1) Paszke, A.; Chaurasia, A.; Kim, S.; Culurciello, E.
@@ -21,12 +21,13 @@ class Enet(tf.keras.Model):
     -------
     'output_layer' = A `Tensor` with the same type as `input_layer`
     '''
-    def __init__(self, C=12, l2=0.0, **kwargs):
-        super(Enet, self).__init__(**kwargs)
+    def __init__(self, C=12, l2=0.0, MultiObjective=False, **kwargs):
+        super(EnetModel, self).__init__(**kwargs)
 
         # initialize parameters
         self.C = C
         self.l2 = l2
+        self.MultiObjective = MultiObjective
 
         # # layers
         self.InitBlock = InitBlock(conv_filters=13)
@@ -114,7 +115,17 @@ class Enet(tf.keras.Model):
                                    l2=l2,
                                    name='BNeck3_8')
 
-        # # fourth block of bottlenecks
+        # project the encoder output to the number of classes
+        # to get the output of the encoder head
+        self.ConvEncOut = tf.keras.layers.Conv2D(
+            self.C,
+            kernel_size=[1, 1],
+            padding='valid',
+            use_bias=False,
+            kernel_regularizer=tf.keras.regularizers.l2(l2),
+            name='EncOut')
+
+        # fourth block of bottlenecks
         self.BNeck4_0 = BottleDeck(output_filters=64,
                                    internal_comp_ratio=2,
                                    l2=l2,
@@ -137,7 +148,7 @@ class Enet(tf.keras.Model):
             padding='same',
             activation='softmax',
             kernel_regularizer=tf.keras.regularizers.l2(l2),
-            name=self.name + '.' + 'FullConv')
+            name='DecOut')
 
     def call(self, inputs):
 
@@ -172,6 +183,8 @@ class Enet(tf.keras.Model):
         x = self.BNeck3_7(x)
         x = self.BNeck3_8(x)
 
+        EncOut = self.ConvEncOut(x)
+
         # fourth block of bottlenecks - upsampling
         x = self.BNeck4_0(x, x_argmax2_0, x_upsample2_0)
         x = self.BNeck4_1(x)
@@ -182,6 +195,10 @@ class Enet(tf.keras.Model):
         x = self.BNeck5_1(x)
 
         # final full conv to the segmentation maps
-        x = self.FullConv(x)
+        DecOut = self.FullConv(x)
 
-        return x
+        # what i return, depends on the multiobjective flag
+        if self.MultiObjective:
+            return EncOut, DecOut
+        else:
+            return DecOut
