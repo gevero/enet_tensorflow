@@ -2,10 +2,52 @@ import tensorflow as tf
 import numpy as np
 
 
-def process_path(file_path):
+def process_path_enc(file_path):
     '''
     Function to process the path containing the images and the
-    labels for the input pipeline
+    labels for the input pipeline. In this case we work for the 
+    encoder output
+
+    Arguments
+    ----------
+    'file_path' = path containing the images and
+                  label folders
+
+    Returns
+    -------
+    'img' = image tensors
+    'iml_end, iml_dec' = label tensors for the encorer and 
+                         decoder heads
+    '''
+
+    # img file
+    img_file = file_path
+
+    # label file
+    label_file = tf.strings.regex_replace(img_file, "/images", "/labels")
+    print(img_file, label_file)
+
+    # decoding image
+    img = tf.io.read_file(img_file)
+    img = tf.image.decode_png(img, channels=3)
+    img = tf.image.convert_image_dtype(img, tf.float32)
+    img = tf.image.resize(img, [360, 480])
+
+    # decoding label
+    print(label_file)
+    iml = tf.io.read_file(label_file)
+    iml = tf.image.decode_png(iml, channels=1)
+    iml = tf.image.convert_image_dtype(iml, tf.uint8)
+    iml_enc = tf.image.resize(iml, [45, 60], method='nearest')
+
+    return img, iml_enc
+
+
+def process_path_dec(file_path):
+    '''
+    Function to process the path containing the images and the
+    labels for the input pipeline. In this case we work for the 
+    decoder output
 
     Arguments
     ----------
@@ -40,7 +82,7 @@ def process_path(file_path):
     return img, iml
 
 
-def process_path_double_obj(file_path):
+def process_path_encdec(file_path):
     '''
     Function to process the path containing the images and the
     labels for the input pipeline. In this case we work for a 
