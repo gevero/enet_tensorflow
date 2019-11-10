@@ -121,6 +121,7 @@ class EnetEncoder(tf.keras.Model):
             kernel_size=[1, 1],
             padding='valid',
             use_bias=True,
+            activation='softmax',
             kernel_regularizer=tf.keras.regularizers.l2(l2),
             name='EncOut')
 
