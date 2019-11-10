@@ -22,7 +22,7 @@ class EnetEncoder(tf.keras.Model):
     'output_layer' = A `Tensor` with the same type as `input_layer`
     '''
     def __init__(self, C=12, l2=0.0, **kwargs):
-        super(EnetModel, self).__init__(**kwargs)
+        super(EnetEncoder, self).__init__(**kwargs)
 
         # initialize parameters
         self.C = C
