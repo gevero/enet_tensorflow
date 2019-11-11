@@ -281,6 +281,7 @@ class EnetModel(tf.keras.Model):
             kernel_size=[1, 1],
             padding='valid',
             use_bias=False,
+            activation='softmax',
             kernel_regularizer=tf.keras.regularizers.l2(l2),
             name='EncOut')
 
@@ -342,7 +343,8 @@ class EnetModel(tf.keras.Model):
         x = self.BNeck3_7(x)
         x = self.BNeck3_8(x)
 
-        EncOut = self.ConvEncOut(x)
+        if self.MultiObjective:
+            EncOut = self.ConvEncOut(x)
 
         # fourth block of bottlenecks - upsampling
         x = self.BNeck4_0(x, x_argmax2_0, x_upsample2_0)
