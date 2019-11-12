@@ -4,7 +4,7 @@ This repository contains a tensorflow 2.0 implementation of Enet as in:
 
 Paszke, A.; Chaurasia, A.; Kim, S.; Culurciello, E. ENet: **A Deep Neural Network Architecture for Real-Time Semantic Segmentation.** [arXiv:1606.02147 [cs] 2016.](https://arxiv.org/pdf/1606.02147.pdf)
 
- Enet is a lightweight neural network geared towards image segmentation for real time applications. This tensorflow 2.0 implementation is greatly indebted with the PyTorch [ENet - Real Time Semantic Segmentation](https://github.com/iArunava/ENet-Real-Time-Semantic-Segmentation) by [iArunava](https://github.com/iArunava) 
+ Enet is a lightweight neural network geared towards image segmentation for real time applications. This tensorflow 2.0 implementation is greatly indebted with the PyTorch [ENet - Real Time Semantic Segmentation](https://github.com/iArunava/ENet-Real-Time-Semantic-Segmentation) implementation by [iArunava](https://github.com/iArunava) 
 
 # Try it out
 
