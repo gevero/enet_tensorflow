@@ -19,3 +19,5 @@ You can try it out directly in this [Colab notebook](https://github.com/gevero/e
 You can find them [here](https://drive.google.com/open?id=1rQN_855G-iHZkPe7KEI-P5PF8U4uIf40) for the [CamVid](http://mi.eng.cam.ac.uk/research/projects/VideoRec/CamVid/) dataset. The weights for different datasets will be released as soon as possible.
 
 ## A typical example
+![TestImg](https://github.com/gevero/enet_tensorflow/blob/master/Images/SegmentationExample.png)
+
