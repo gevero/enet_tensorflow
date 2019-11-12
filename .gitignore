@@ -3,7 +3,13 @@
 MNIST-data
 .vscode
 .ropeproject
+.ipynb_checkpoints
+__pycache__
 notebooks/.ipynb_checkpoints
 notebooks/logs
 logs
 *.png
+enet_tensorflow_debug.py
+EnetPaper.pdf
+dataset
+EnetTensorflow.code-workspace
