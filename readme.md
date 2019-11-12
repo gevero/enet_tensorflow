@@ -8,7 +8,7 @@ Paszke, A.; Chaurasia, A.; Kim, S.; Culurciello, E. ENet: **A Deep Neural Networ
 
 # Try it out
 
-You can try it out directly in this [Colab notebook](https://github.com/gevero/enet_tensorflow/blob/master/notebooks/Enet%20CamVid%20Training.ipynb). in the notebook, Enet is trained in three different ways for comparison:
+You can try it out directly in this [Colab notebook](https://colab.research.google.com/github/gevero/enet_tensorflow/blob/master/notebooks/Enet%20CamVid%20Training.ipynb). in the notebook, Enet is trained in three different ways for comparison:
 
 - **First the Encoder and then the Decoder:** as in the original paper, we first train the encoder, freeze the weights and then train the decoder. This approach provides the more stable training.
 -  **Encoder and  Decoder simultaneously with two objectives:** an approach similar to the original paper: we train Enet in one go but with the stabilty benefits of the original approach
