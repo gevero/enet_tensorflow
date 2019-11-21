@@ -70,7 +70,7 @@ def tf_dataset_generator(file_pattern, map_fn):
     '''
 
     # create a list of the training images
-    data_filelist_ds = tf.data.Dataset.list_files(file_pattern)
+    data_filelist_ds = tf.data.Dataset.list_files(file_pattern, shuffle=False)
 
     # create the labeled dataset (returns (img,label) pairs)
     data_set = data_filelist_ds.map(
