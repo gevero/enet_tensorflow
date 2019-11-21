@@ -52,8 +52,7 @@ def process_label(label_file, h_iml, w_iml):
     return iml
 
 
-def tf_dataset_generator(file_pattern,
-                         map_fn)
+def tf_dataset_generator(file_pattern, map_fn):
     '''
     Creates a training tf.dataset from images or labels matching
     the 'file_pattern' in the 'dataset_path'. Here we do not batch
