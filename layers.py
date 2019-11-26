@@ -167,7 +167,7 @@ class MaxUnpool2D(tf.keras.layers.Layer):
     def compute_output_shape(self, input_shape, spatial_output_shape):
 
         # getting input shape
-        input_shape = tf.Shape(input_shape)
+        input_shape = tf.shape(input_shape)
 
         # standardize spatial_output_shape
         spatial_output_shape = conv_utils.normalize_tuple(
