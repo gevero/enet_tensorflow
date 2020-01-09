@@ -12,3 +12,8 @@ enet_tensorflow_debug.py
 EnetPaper.pdf
 dataset
 EnetTensorflow.code-workspace
+datasets
+train.cache.data-00000-of-00001
+train.cache.index
+val.cache.data-00000-of-00001
+val.cache.index

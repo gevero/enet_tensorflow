@@ -16,6 +16,12 @@ if __name__ == '__main__':
         type=str,
         help='The path to the image to perform semantic segmentation')
 
+    parser.add_argument('-sm',
+                        '--save_model',
+                        type=str,
+                        default='./Enet.tf',
+                        help='Tensorflow model save file')
+
     parser.add_argument('-tbl',
                         '--tensorboard_logs',
                         type=str,
@@ -49,7 +55,7 @@ if __name__ == '__main__':
     parser.add_argument('-bs',
                         '--batch-size',
                         type=int,
-                        default=10,
+                        default=8,
                         help='The batch size')
 
     parser.add_argument('-wd',
@@ -61,7 +67,7 @@ if __name__ == '__main__':
     parser.add_argument('-e',
                         '--epochs',
                         type=int,
-                        default=102,
+                        default=10,
                         help='The number of epochs')
 
     parser.add_argument('-nc',
@@ -80,38 +86,65 @@ if __name__ == '__main__':
     parser.add_argument('-iptr',
                         '--img-pattern',
                         type=str,
-                        default='./datasets/CamVid/train/img/',
+                        default='./datasets/CamVid/train/images/*.png',
                         help='The path to the input dataset')
 
     parser.add_argument('-lptr',
                         '--label-pattern',
                         type=str,
-                        default='./datasets/CamVid/train/labels/',
+                        default='./datasets/CamVid/train/labels/*.png',
                         help='The path to the label dataset')
 
-    parser.add_argument('-ipv',
-                        '--img-pattern-val',
-                        type=str,
-                        default='./datasets/CamVid/val/img/',
-                        help='The path to the input dataset')
+    parser.add_argument(
+        '-ipv',
+        '--img-pattern-val',
+        type=str,
+        # default='./datasets/CamVid/val/images/*.png',
+        default=
+        './datasets/cityscapes/leftImg8bit_trainvaltest/leftImg8bit/train/*/*.png',
+        help='The path to the input dataset')
 
-    parser.add_argument('-lpv',
-                        '--label-pattern-val',
-                        type=str,
-                        default='./datasets/CamVid/val/labels/',
-                        help='The path to the label dataset')
+    parser.add_argument(
+        '-lpv',
+        '--label-pattern-val',
+        type=str,
+        # default='./datasets/CamVid/val/labels/*.png',
+        default=
+        './datasets/cityscapes/gtFine_trainvaltest/gtFine/train/*/*labelIds*.png',
+        help='The path to the label dataset')
 
     parser.add_argument('-iptt',
                         '--img-pattern-test',
                         type=str,
-                        default='./datasets/CamVid/test/img/',
+                        default='./datasets/CamVid/test/images/*.png',
                         help='The path to the input dataset')
 
     parser.add_argument('-lptt',
                         '--label-pattern-test',
                         type=str,
-                        default='./datasets/CamVid/test/labels',
+                        default='./datasets/CamVid/test/labels/*.png',
                         help='The path to the label dataset')
+
+    parser.add_argument(
+        '-ctr',
+        '--cache-train',
+        type=str,
+        default='',
+        help='Filename to cache the training data: if empty cache in memory')
+
+    parser.add_argument(
+        '-cv',
+        '--cache-val',
+        type=str,
+        default='',
+        help='Filename to cache the validation data: if empty cache in memory')
+
+    parser.add_argument(
+        '-ctt',
+        '--cache-test',
+        type=str,
+        default='',
+        help='Filename to cache the test data: if empty cache in memory')
 
     parser.add_argument('--mode',
                         choices=['train', 'test'],

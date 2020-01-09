@@ -1,10 +1,11 @@
 # importing standard libraries
 import tensorflow as tf
-import matplotlib.pylab as plt
 import numpy as np
+import datetime
 
 # Importing utils and models
-from utils import process_img, process_label
+from functools import partial
+from utils import preprocess_img_label, map_singlehead, map_doublehead
 from utils import tf_dataset_generator, get_class_weights
 from models import EnetModel
 
@@ -26,7 +27,16 @@ def train(FLAGS):
     tb_logs = FLAGS.tensorboard_logs  #
     img_width = FLAGS.img_width  #
     img_height = FLAGS.img_height  #
+    save_model = FLAGS.save_model  #
+    cache_train = FLAGS.cache_train  #
+    cache_val = FLAGS.cache_val  #
+    cache_test = FLAGS.cache_test  #
     print('[INFO]Defined all the hyperparameters successfully!')
+
+    # setup tensorboard
+    log_dir = "logs/fit/" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+    tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=log_dir,
+                                                          histogram_freq=1)
 
     # encoder and decoder dimensions
     h_enc = img_height // 8
@@ -34,48 +44,39 @@ def train(FLAGS):
     h_dec = img_height
     w_dec = img_width
 
-    # raw training datasets
-    train_img_dec_ds = tf_dataset_generator(
-        img_pattern, lambda x: process_img(x, h_dec, w_dec))
-    train_label_dec_ds = tf_dataset_generator(
-        label_pattern, lambda x: process_label(x, h_dec, w_dec))
-    train_label_enc_ds = tf_dataset_generator(
-        label_pattern, lambda x: process_label(x, h_enc, w_enc))
+    # create (img,label) string tensor lists
+    filelist_train = preprocess_img_label(img_pattern, label_pattern)
+    filelist_val = preprocess_img_label(img_pattern_val, label_pattern_val)
 
-    # raw validation datasets
-    val_img_dec_ds = tf_dataset_generator(
-        img_pattern_val, lambda x: process_img(x, h_dec, w_dec))
-    val_label_dec_ds = tf_dataset_generator(
-        label_pattern_val, lambda x: process_label(x, h_dec, w_dec))
-    val_label_enc_ds = tf_dataset_generator(
-        label_pattern_val, lambda x: process_label(x, h_enc, w_enc))
+    # training dataset size
+    n_train = tf.data.experimental.cardinality(filelist_train).numpy()
+    n_val = tf.data.experimental.cardinality(filelist_val).numpy()
+
+    # define mapping functions for single and double head nets
+    map_single = partial(map_singlehead, h_img=h_dec, w_img=w_dec)
+    map_double = partial(map_doublehead,
+                         h_enc=h_enc,
+                         w_enc=w_enc,
+                         h_dec=h_dec,
+                         w_dec=w_dec)
+
+    # create dataset
+    if training_type == 0 or training_type == 1:
+        map_fn = map_double
+    else:
+        map_fn = map_single
+    train_ds = filelist_train.shuffle(n_train).map(map_fn).cache(
+        cache_train).batch(batch_size).repeat()
+    val_ds = filelist_val.map(map_fn).cache(cache_val).batch(
+        batch_size).repeat()
 
     # final training and validation datasets
-    if training_type == 0 or training_type == 1:
-        train_ds = tf.data.Dataset.zip(
-            (train_img_dec_ds,
-             (train_label_enc_ds, train_label_dec_ds))).cache().shuffle(
-                 buffer_size=shuffle_buffer_size).batch(batch_size).repeat()
-        val_ds = tf.data.Dataset.zip(
-            (val_img_dec_ds,
-             (val_label_enc_ds, val_label_dec_ds))).cache().shuffle(
-                 buffer_size=shuffle_buffer_size).batch(batch_size).repeat()
-    else:
-        train_ds = tf.data.Dataset.zip(
-            (train_img_dec_ds, train_label_dec_ds)).cache().shuffle(
-                buffer_size=shuffle_buffer_size).batch(batch_size).repeat()
-        val_ds = tf.data.Dataset.zip(
-            (val_img_dec_ds, val_label_dec_ds)).cache().shuffle(
-                buffer_size=shuffle_buffer_size).batch(batch_size).repeat()
-
-    # training and validation dataset size
-    n_train = tf.data.experimental.cardinality(train_img_dec_ds)
-    n_val = tf.data.experimental.cardinality(val_img_dec_ds)
 
     # -------------------- get the class weights --------------------
     print('[INFO]Starting to define the class weights...')
-    class_weights = get_class_weights(
-        tf.data.Dataset.zip((train_img_dec_ds, train_label_dec_ds)))
+    label_filelist = tf.data.Dataset.list_files(label_pattern, shuffle=False)
+    label_ds = label_filelist.map(lambda x: process_label(x, h_dec, w_dec))
+    class_weights = get_class_weights(label_ds).tolist()
     print('[INFO]Fetched all class weights successfully!')
 
     # -------------------- istantiate model --------------------
@@ -110,7 +111,8 @@ def train(FLAGS):
                  steps_per_epoch=n_train // batch_size,
                  validation_data=val_ds,
                  validation_steps=n_val // batch_size // 5,
-                 class_weight=class_weights)
+                 class_weight=class_weights,
+                 callbacks=[tensorboard_callback])
 
         # freeze encoder and unfreeze decoder
         for layer in Enet.layers[-6:]:
@@ -133,7 +135,8 @@ def train(FLAGS):
                              steps_per_epoch=n_train // batch_size,
                              validation_data=val_ds,
                              validation_steps=n_val // batch_size // 5,
-                             class_weight=class_weights)
+                             class_weight=class_weights,
+                             callbacks=[tensorboard_callback])
 
     # -- simultaneous double objective trainings --
     elif training_type == 1:
@@ -148,12 +151,14 @@ def train(FLAGS):
                      loss_weights=[0.5, 0.5])
 
         # fit model
+        print('train: ', n_train, 'batch: ', batch_size)
         enet_hist = Enet.fit(x=train_ds,
                              epochs=epochs,
                              steps_per_epoch=n_train // batch_size,
                              validation_data=val_ds,
                              validation_steps=n_val // batch_size // 5,
-                             class_weight=class_weights)
+                             class_weight=class_weights,
+                             callbacks=[tensorboard_callback])
 
     # -- end to end training --
     else:
@@ -168,4 +173,8 @@ def train(FLAGS):
                              steps_per_epoch=n_train // batch_size,
                              validation_data=val_ds,
                              validation_steps=n_val // batch_size // 5,
-                             class_weight=class_weights)
+                             class_weight=class_weights,
+                             callbacks=[tensorboard_callback])
+
+    # -------------------- save model --------------------
+    Enet.save_weights(save_model)
