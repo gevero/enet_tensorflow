@@ -13,12 +13,12 @@ batch_size = 8
 epochs = 50
 training_type = 0
 learning_rate = 5e-4
-num_classes = 12
+num_classes = 3
 weight_decay = 2e-4
-img_pattern = "./datasets/CamVid/train/images/*.png"
-label_pattern = "./datasets/CamVid/train/labels/*.png"
-img_pattern_val = "./datasets/CamVid/val/images/*.png"
-label_pattern_val = "./datasets/CamVid/train/labels/*.png"
+img_pattern = "/home/giovi/data/work/machine_learning/datasets/SegFaces/train/images/*.png"
+label_pattern = "/home/giovi/data/work/machine_learning/datasets/SegFaces/train/labels/*.png"
+img_pattern_val = "/home/giovi/data/work/machine_learning/datasets/SegFaces/val/images/*.png"
+label_pattern_val = "/home/giovi/data/work/machine_learning/datasets/SegFaces/train/labels/*.png"
 tb_logs = './tb_logs/'
 img_width = 480
 img_height = 360
@@ -68,7 +68,7 @@ val_ds = filelist_val.map(map_fn).cache(cache_val).batch(batch_size).repeat()
 print('[INFO]Starting to define the class weights...')
 label_filelist = tf.data.Dataset.list_files(label_pattern, shuffle=False)
 label_ds = label_filelist.map(lambda x: map_label(x, h_dec, w_dec))
-class_weights = get_class_weights(label_ds).tolist()
+class_weights = get_class_weights(label_ds, num_classes=num_classes).tolist()
 print('[INFO]Fetched all class weights successfully!')
 
 # -------------------- istantiate model --------------------

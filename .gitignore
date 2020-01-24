@@ -17,3 +17,5 @@ train.cache.data-00000-of-00001
 train.cache.index
 val.cache.data-00000-of-00001
 val.cache.index
+notebooks/Enet FaceSegmentation Training.ipynb
+enet_tensorflow_debug.py
