@@ -10,5 +10,8 @@ notebooks/logs
 logs
 enet_tensorflow_debug.py
 EnetPaper.pdf
-dataset
+dataset/
 EnetTensorflow.code-workspace
+datasets/
+notebooks/Enet FaceSegmentation Training.ipynb
+*.cache.*
