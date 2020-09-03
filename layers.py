@@ -1,5 +1,5 @@
 import tensorflow as tf
-from tensorflow_core.python.keras.utils import conv_utils
+from tensorflow.python.keras.utils import conv_utils
 
 # Tensorflow implementations of max_pooling and unpooling
 
